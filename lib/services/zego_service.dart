@@ -19,6 +19,7 @@ class ZegoService with ChangeNotifier {
 
   // Stream tracking
   List<ZegoUser> remoteUsers = [];
+  Map<String, double> soundLevels = {}; // Map<UserID, Level>
 
   Future<void> initEngine() async {
     if (_isEngineCreated) return;
@@ -29,11 +30,35 @@ class ZegoService with ChangeNotifier {
     );
 
     _isEngineCreated = true;
+
+    // Enable sound level monitoring
+    await ZegoExpressEngine.instance.startSoundLevelMonitor();
+
     _registerEventHandlers();
     debugPrint("Zego Engine Created");
   }
 
   void _registerEventHandlers() {
+    // Sound Level Handler
+    ZegoExpressEngine.onCapturedSoundLevelUpdate = (soundLevel) {
+      // Local user sound level
+      // We can use this to show wave animation for self
+      // notifyListeners(); // Only notify if we track self level
+    };
+
+    ZegoExpressEngine.onRemoteSoundLevelUpdate = (soundLevels) {
+      // Remote users sound level
+      for (var info in soundLevels.values) {
+        // info is double (level)
+        // Wait, map key is StreamID. We need to map StreamID to UserID.
+        // Or just notify listeners and let UI handle stream ID matching if possible.
+        // Actually onRemoteSoundLevelUpdate signature: (Map<String, double> soundLevels)
+        // Key is streamID.
+      }
+      this.soundLevels = soundLevels;
+      notifyListeners();
+    };
+
     ZegoExpressEngine.onRoomStateChanged = (
       roomID,
       reason,

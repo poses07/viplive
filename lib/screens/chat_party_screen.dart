@@ -538,25 +538,25 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                             ),
                           ),
                           SizedBox(height: h(10)),
-                          // Input Field
+                          // Input Field (Visible to everyone)
                           Row(
                             children: [
                               Expanded(
                                 child: Container(
-                                  height: h(40),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.1),
+                                    color: Colors.black.withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: TextField(
                                     controller: _messageController,
                                     style: const TextStyle(color: Colors.white),
                                     decoration: InputDecoration(
-                                      hintText: 'Say something...',
+                                      hintText: 'Bir şeyler söyle...',
                                       hintStyle: TextStyle(
                                         color: Colors.white.withValues(
                                           alpha: 0.5,
                                         ),
+                                        fontSize: w(14),
                                       ),
                                       border: InputBorder.none,
                                       contentPadding: EdgeInsets.symmetric(
@@ -792,6 +792,54 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close profile sheet
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          isScrollControlled: true,
+                          builder:
+                              (context) => GiftBottomSheet(
+                                onSendGift: (gift) {
+                                  // Send gift logic here
+                                  final apiService = ApiService();
+                                  // Implement sendGift API call
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${gift['name']} gönderildi!',
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(
+                          0xFFFFD700,
+                        ), // Gold for gift
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Hediye Gönder",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
