@@ -85,6 +85,25 @@ class ZegoService with ChangeNotifier {
       }
       notifyListeners();
     };
+
+    // Auto-Play Streams
+    ZegoExpressEngine.onRoomStreamUpdate = (
+      roomID,
+      updateType,
+      streamList,
+      extendedData,
+    ) {
+      if (updateType == ZegoUpdateType.Add) {
+        for (var stream in streamList) {
+          // Play stream automatically (audio only by default unless view is set later)
+          ZegoExpressEngine.instance.startPlayingStream(stream.streamID);
+        }
+      } else {
+        for (var stream in streamList) {
+          ZegoExpressEngine.instance.stopPlayingStream(stream.streamID);
+        }
+      }
+    };
   }
 
   Future<void> loginRoom(
