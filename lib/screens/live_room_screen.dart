@@ -181,6 +181,20 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             config: config,
           ),
 
+          // Debug Live ID (Remove later)
+          Positioned(
+            top: h(60),
+            left: w(20),
+            child: Text(
+              "ID: ${widget.liveID}",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                backgroundColor: Colors.black54,
+              ),
+            ),
+          ),
+
           // Custom Close Button
           Positioned(
             top: h(40),
