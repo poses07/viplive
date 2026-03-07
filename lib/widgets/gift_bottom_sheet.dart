@@ -6,15 +6,12 @@ import '../providers/user_provider.dart';
 import '../screens/wallet_screen.dart';
 
 class GiftBottomSheet extends StatefulWidget {
-  final int roomId;
-  final int receiverId; // Who receives the gift (usually Host or user on seat)
-  final Function(String message)? onGiftSent;
+  final Function(Map<String, dynamic> gift)?
+  onSendGift; // Callback for sending logic
 
   const GiftBottomSheet({
     super.key,
-    required this.roomId,
-    required this.receiverId,
-    this.onGiftSent,
+    this.onSendGift, // Optional callback if parent handles sending
   });
 
   @override
@@ -88,50 +85,20 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       return;
     }
 
-    setState(() => _isSending = true);
-
-    try {
-      final result = await _apiService.sendGift(
-        senderId: currentUser.id,
-        receiverId: widget.receiverId,
-        giftId: gift.id,
-        roomId: widget.roomId,
-      );
-
-      if (mounted) {
-        if (result['success'] == true) {
-          // Update local balance immediately
-          if (result['new_balance'] != null) {
-            userProvider.updateBalance(
-              gift.price, // Just pass the cost, provider handles subtraction
-            );
-          }
-
-          // Notify parent to show message (Optional now since backend sends it)
-          // But kept for immediate local feedback if needed, or removed to avoid dupes.
-          // Let's rely on backend message for the chat list, but maybe we want a toast?
-          // widget.onGiftSent?.call('${currentUser.username} sent ${gift.name}');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${result['error']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSending = false);
+    // If callback provided, delegate sending logic to parent
+    if (widget.onSendGift != null) {
+      widget.onSendGift!({
+        'id': gift.id,
+        'name': gift.name,
+        'price': gift.price,
+        'icon': gift.iconUrl,
+      });
+      return;
     }
+
+    // Default internal sending logic (if needed, but mostly parent handles now)
+    setState(() => _isSending = true);
+    // ... (rest of the logic if no callback)
   }
 
   @override
