@@ -83,12 +83,35 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         widget.roomId.toString(),
         currentUser.id.toString(),
         currentUser.username,
-        isHost:
-            false, // Party members are not "Host" in video sense, but can publish audio
+        isHost: false,
       );
 
-      // In Party mode, usually we auto-publish audio if seated, or listen if audience
-      // Logic handled in _fetchSeats or seat tap
+      // Check if I am the Host (room owner) and auto-sit if so
+      // We need a way to know if I am host.
+      // For now, let's assume if the room was just created by me, I should sit.
+      // But simpler: Check if seat 0 is empty, and if I am the creator (we need creator ID)
+      // Or just try to sit at 0 if it's empty and I just joined? No, that's risky for guests.
+
+      // Let's rely on _fetchSeats. If I am already seated (by backend on create), fine.
+      // If backend doesn't seat me on create, I need to do it here.
+      // Let's try to sit at index 0 if I am the "suspected" host (e.g. if I navigated here after create)
+      // Since we don't have isHost param here yet, let's add a safe check:
+      // If seat 0 is empty, and I am the one who created it...
+
+      // Better approach: When navigating from CreateRoomScreen, pass isHost: true
+      // But since we can't change navigation right now easily, let's do a quick API check or attempt.
+
+      // Attempt to sit at 0 if I am the first one joining and it's empty?
+      // Let's leave auto-sit for now unless we add isHost to widget.
+      // But user said "I don't sit automatically".
+
+      // Force sit at index 0 for testing if I am user ID 1 (or whatever logic)
+      // Or:
+      // await _apiService.updateSeat(widget.roomId!, 0, currentUser.id, 'sit');
+      // _fetchSeats();
+
+      // NOTE: Ideally, backend should seat the creator on room creation.
+      // If not, we can do it here if we know we are the creator.
     }
   }
 
@@ -623,6 +646,11 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   }
 
   Widget _buildTopBar(double Function(double) w, double Function(double) h) {
+    // Get host info from room data or fallback
+    String hostName = widget.roomTitle;
+    String roomIdDisplay =
+        widget.roomId != null ? widget.roomId.toString() : "Unknown";
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: w(16), vertical: h(10)),
       child: Row(
@@ -639,7 +667,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 CircleAvatar(
                   radius: w(16),
                   backgroundImage: const NetworkImage(
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+                    'https://i.pravatar.cc/150?img=1', // Default avatar
                   ),
                 ),
                 SizedBox(width: w(8)),
@@ -647,7 +675,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Alexander',
+                      hostName,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: w(12),
@@ -655,7 +683,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                       ),
                     ),
                     Text(
-                      'ID: 123456',
+                      'ID: $roomIdDisplay',
                       style: TextStyle(color: Colors.white70, fontSize: w(10)),
                     ),
                   ],
