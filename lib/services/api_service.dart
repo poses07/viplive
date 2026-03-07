@@ -269,35 +269,6 @@ class ApiService {
     }
   }
 
-  // Send Gift
-  Future<Map<String, dynamic>> sendGift({
-    required int senderId,
-    required int receiverId,
-    required int giftId,
-    required int roomId,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/send_gift.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'sender_id': senderId,
-          'receiver_id': receiverId,
-          'gift_id': giftId,
-          'room_id': roomId,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to send gift');
-      }
-    } catch (e) {
-      throw Exception('Error sending gift: $e');
-    }
-  }
-
   // Update Seat
   Future<Map<String, dynamic>> updateSeat({
     required int roomId,
