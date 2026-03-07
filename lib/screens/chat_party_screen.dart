@@ -4,7 +4,7 @@ import '../widgets/gift_bottom_sheet.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../services/zego_service.dart';
+// import '../services/zego_service.dart'; // REMOVED
 import '../models/seat.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
@@ -67,25 +67,25 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
       });
 
       // Join Voice Room
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _joinVoiceRoom();
-      });
+      // WidgetsBinding.instance.addPostFrameCallback((_) {
+      //   _joinVoiceRoom();
+      // });
     }
   }
 
-  Future<void> _joinVoiceRoom() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final zegoService = Provider.of<ZegoService>(context, listen: false);
-    final currentUser = userProvider.currentUser;
-
-    if (currentUser != null && widget.roomId != null) {
-      await zegoService.joinRoom(
-        widget.roomId.toString(),
-        currentUser.id.toString(),
-        currentUser.username,
-      );
-    }
-  }
+  // Future<void> _joinVoiceRoom() async {
+  //   final userProvider = Provider.of<UserProvider>(context, listen: false);
+  //   final zegoService = Provider.of<ZegoService>(context, listen: false);
+  //   final currentUser = userProvider.currentUser;
+  //
+  //   if (currentUser != null && widget.roomId != null) {
+  //     await zegoService.joinRoom(
+  //       widget.roomId.toString(),
+  //       currentUser.id.toString(),
+  //       currentUser.username,
+  //     );
+  //   }
+  // }
 
   Future<void> _fetchSeats({bool background = false}) async {
     if (!background) setState(() => _isLoadingSeats = true);
@@ -98,25 +98,25 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         });
 
         // Audio Logic
-        final zegoService = Provider.of<ZegoService>(context, listen: false);
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        final currentUser = userProvider.currentUser;
-
-        if (currentUser != null) {
-          bool amISeated = seats.any((s) => s.user?.id == currentUser.id);
-
-          if (!amISeated) {
-            // If I am not in any seat, I should be a listener (stop publishing)
-            zegoService.stopPublishingStream();
-          } else {
-            // If I am seated, I should be able to publish.
-            // We rely on the Mic Toggle button for actual mute/unmute.
-            // But we need to ensure the stream is published initially if not already.
-            // For now, let's assume joinRoom started publishing and we just toggle mute.
-            // If we were a listener and now seated, we might need to start publishing.
-            // zegoService.startPublishingStream(currentUser.id.toString());
-          }
-        }
+        // final zegoService = Provider.of<ZegoService>(context, listen: false);
+        // final userProvider = Provider.of<UserProvider>(context, listen: false);
+        // final currentUser = userProvider.currentUser;
+        //
+        // if (currentUser != null) {
+        //   bool amISeated = seats.any((s) => s.user?.id == currentUser.id);
+        //
+        //   if (!amISeated) {
+        //     // If I am not in any seat, I should be a listener (stop publishing)
+        //     zegoService.stopPublishingStream();
+        //   } else {
+        //     // If I am seated, I should be able to publish.
+        //     // We rely on the Mic Toggle button for actual mute/unmute.
+        //     // But we need to ensure the stream is published initially if not already.
+        //     // For now, let's assume joinRoom started publishing and we just toggle mute.
+        //     // If we were a listener and now seated, we might need to start publishing.
+        //     // zegoService.startPublishingStream(currentUser.id.toString());
+        //   }
+        // }
       }
     } catch (e) {
       debugPrint('Error loading seats: $e');
@@ -168,10 +168,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
 
     // Only destroy if we are leaving the screen entirely, not just pushing a new route
     // But for now, let's keep it simple and leave room on dispose
-    final zegoService = Provider.of<ZegoService>(context, listen: false);
-    if (zegoService.isInRoom) {
-      zegoService.leaveRoom();
-    }
+    // final zegoService = Provider.of<ZegoService>(context, listen: false);
+    // if (zegoService.isInRoom) {
+    //   zegoService.leaveRoom();
+    // }
     super.dispose();
   }
 

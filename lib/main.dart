@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
 import 'providers/user_provider.dart';
-import 'services/zego_service.dart';
+// import 'services/zego_service.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => ZegoService()),
+        // ChangeNotifierProvider(create: (_) => ZegoService()),
       ],
       child: const VipLiveApp(),
     ),

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart';
+// import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart'; // REMOVED
 import '../services/api_service.dart';
 import '../widgets/gift_bottom_sheet.dart';
 import '../models/seat.dart';
@@ -28,11 +28,7 @@ class LiveRoomScreen extends StatefulWidget {
 }
 
 class _LiveRoomScreenState extends State<LiveRoomScreen> {
-  // App ID and App Sign from ZegoCloud Console
-  // Replace these with your actual App ID and App Sign
-  final int appID = 341179331;
-  final String appSign =
-      'db22c1ed05e7f778e4624f656d96a252540090fcb20a3b0bec014bf2c1ddc599';
+  // App ID and App Sign removed (Zego Removed)
 
   final TextEditingController _chatController = TextEditingController();
   final List<String> _messages = ['Canlı yayına hoş geldiniz!'];
@@ -176,122 +172,178 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     double w(double width) => width * (screenSize.width / designWidth);
     double h(double height) => height * (screenSize.height / designHeight);
 
-    // Config for Zego
-    final config =
-        widget.isHost
-            ? ZegoUIKitPrebuiltLiveStreamingConfig.host()
-            : ZegoUIKitPrebuiltLiveStreamingConfig.audience();
-
-    // Force camera and mic on for host
-    if (widget.isHost) {
-      config.turnOnCameraWhenJoining = true;
-      config.turnOnMicrophoneWhenJoining = true;
-      config.useSpeakerWhenJoining = true;
-    }
-
-    // Hide default close button
-    config.topMenuBar.buttons = [
-      ZegoLiveStreamingMenuBarButtonName.switchCameraButton,
-      ZegoLiveStreamingMenuBarButtonName.toggleMicrophoneButton,
-    ];
+    // Config for Zego REMOVED
 
     return Scaffold(
       body: Stack(
         children: [
-          // Zego Live Streaming Widget
-          ZegoUIKitPrebuiltLiveStreaming(
-            appID: appID,
-            appSign: appSign,
-            userID: widget.userId,
-            userName: widget.userName,
-            liveID: widget.liveID,
-            config: config,
-          ),
-
-          // Debug Live ID (Remove later)
-          Positioned(
-            top: h(60),
-            left: w(20),
-            child: Text(
-              "ID: ${widget.liveID}",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                backgroundColor: Colors.black54,
+          // 1. Background Image (Always visible)
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: NetworkImage(
+                  'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80',
+                ),
+                fit: BoxFit.cover,
               ),
             ),
           ),
 
-          // Custom Close Button
+          // 2. Dark Overlay
+          Container(color: Colors.black.withValues(alpha: 0.6)),
+
+          // 3. Removed Zego Video Layer
+
+          // 4. Custom Top Bar (Profile Info & Close Button)
           Positioned(
-            top: h(40),
+            top: h(50), // Adjust for safe area
+            left: w(20),
             right: w(20),
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () async {
-                // If Audience, just leave
-                if (!widget.isHost) {
-                  Navigator.of(context).pop();
-                  return;
-                }
-
-                // If Host, ask confirmation to end room
-                bool shouldEnd =
-                    await showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          title: const Text(
-                            "Yayını Sonlandır",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: const Text(
-                            "Yayını bitirmek ve odayı kapatmak istediğinize emin misiniz?",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text(
-                                "İptal",
-                                style: TextStyle(color: Colors.grey),
-                              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Host Info (Mock)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: w(8),
+                    vertical: h(4),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: w(16),
+                        backgroundImage: NetworkImage(
+                          "https://via.placeholder.com/150",
+                        ), // Todo: Host Avatar
+                      ),
+                      SizedBox(width: w(8)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.roomTitle.isNotEmpty
+                                ? widget.roomTitle
+                                : "Live Room",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: w(12),
+                              fontWeight: FontWeight.bold,
                             ),
-                            TextButton(
-                              onPressed: () async {
-                                // Call API to end room
-                                try {
-                                  int roomId =
-                                      int.tryParse(
-                                        widget.liveID.replaceAll('room_', ''),
-                                      ) ??
-                                      0;
-                                  if (roomId > 0) {
-                                    await ApiService().endRoom(roomId);
-                                  }
-                                } catch (e) {
-                                  debugPrint("Error ending room: $e");
-                                }
-                                if (context.mounted) {
-                                  Navigator.of(context).pop(true);
-                                }
-                              },
-                              child: const Text(
-                                "Bitir",
-                                style: TextStyle(color: Color(0xFFE65E8B)),
-                              ),
+                          ),
+                          Text(
+                            "ID: ${widget.liveID.replaceAll('room_', '')}",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: w(10),
                             ),
-                          ],
-                        );
-                      },
-                    ) ??
-                    false;
+                          ),
+                        ],
+                      ),
+                      SizedBox(width: w(8)),
+                      Container(
+                        padding: EdgeInsets.all(w(4)),
+                        decoration: const BoxDecoration(
+                          color: Colors.yellow,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          size: 12,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-                if (shouldEnd && context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
+                // Close Button
+                IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(w(6)),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  onPressed: () async {
+                    // If Audience, just leave
+                    if (!widget.isHost) {
+                      Navigator.of(context).pop();
+                      return;
+                    }
+
+                    // If Host, ask confirmation to end room
+                    bool shouldEnd =
+                        await showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              backgroundColor: const Color(0xFF1E1E1E),
+                              title: const Text(
+                                "Yayını Sonlandır",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              content: const Text(
+                                "Yayını bitirmek ve odayı kapatmak istediğinize emin misiniz?",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.of(context).pop(false),
+                                  child: const Text(
+                                    "İptal",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    // Call API to end room
+                                    try {
+                                      int roomId =
+                                          int.tryParse(
+                                            widget.liveID.replaceAll(
+                                              'room_',
+                                              '',
+                                            ),
+                                          ) ??
+                                          0;
+                                      if (roomId > 0) {
+                                        await ApiService().endRoom(roomId);
+                                      }
+                                    } catch (e) {
+                                      debugPrint("Error ending room: $e");
+                                    }
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop(true);
+                                    }
+                                  },
+                                  child: const Text(
+                                    "Bitir",
+                                    style: TextStyle(color: Color(0xFFE65E8B)),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ) ??
+                        false;
+
+                    if (shouldEnd && context.mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ],
             ),
           ),
 
