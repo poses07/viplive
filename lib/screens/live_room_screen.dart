@@ -297,21 +297,21 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
           // SEAT GRID (Same for Host and Audience)
           Positioned(
-            top: h(100),
+            top: h(130), // Lowered to avoid overlap with top bar
             left: w(20),
             right: w(20),
             child: SizedBox(
-              height: h(120),
+              height: h(240), // Increased height to fit 2 rows (5x2)
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 5,
                   crossAxisSpacing: w(10),
-                  mainAxisSpacing: h(10),
-                  childAspectRatio: 0.8,
+                  mainAxisSpacing: h(20), // Increased spacing between rows
+                  childAspectRatio: 0.7, // Taller aspect ratio for seat+name
                 ),
-                itemCount: _seats.length,
+                itemCount: _seats.length, // Should be 10 seats from backend
                 itemBuilder: (context, index) {
                   final seat = _seats[index];
                   return GestureDetector(
