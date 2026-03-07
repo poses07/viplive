@@ -394,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
                     liveID: 'room_${room.id}',
                   ),
             ),
-          );
+          ).then((_) => _fetchRooms()); // Refresh on return
         } else {
           Navigator.push(
             context,
@@ -403,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen>
                   (context) =>
                       ChatPartyScreen(roomTitle: room.title, roomId: room.id),
             ),
-          );
+          ).then((_) => _fetchRooms()); // Refresh on return
         }
       },
       child: Container(
