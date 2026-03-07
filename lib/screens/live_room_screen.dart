@@ -41,7 +41,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   bool _showEntranceEffect = false;
   String _enteringUserName = "";
 
-  // Gift Combo State
+  // Gift Combo Logic
   int _comboCount = 0;
   Timer? _comboTimer;
   String _lastGiftName = "";
@@ -91,6 +91,70 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
       isHost: widget.isHost,
     );
     setState(() {}); // Refresh to show video/audio status
+  }
+
+  void _addGiftMessage(String message, String giftName) {
+    setState(() {
+      // Extract sender name
+      String senderName = "User";
+      try {
+        senderName = message.split(" sent ")[0];
+      } catch (_) {}
+
+      // Update existing message if it's the same gift/sender
+      bool updated = false;
+      if (_messages.isNotEmpty) {
+        String lastMsg = _messages[0];
+        if (lastMsg.startsWith("$senderName sent $giftName")) {
+          // Check if it already has a multiplier
+          if (lastMsg.contains(" x")) {
+            try {
+              int count = int.parse(lastMsg.split(" x")[1]);
+              _messages[0] = "$senderName sent $giftName x${count + 1}";
+              updated = true;
+            } catch (_) {}
+          } else {
+            // First multiplier
+            _messages[0] = "$senderName sent $giftName x2";
+            updated = true;
+          }
+        }
+      }
+
+      if (!updated) {
+        _messages.insert(0, "$senderName sent $giftName x1");
+      }
+
+      // Combo Logic
+      if (_lastGiftName == giftName &&
+          _lastSenderName == senderName &&
+          (_showCombo || _showSideBanner)) {
+        _comboCount++;
+        _comboTimer?.cancel();
+      } else {
+        _comboCount = 1;
+        _lastGiftName = giftName;
+        _lastSenderName = senderName;
+        _showCombo = true;
+        _showSideBanner = false;
+      }
+
+      // Show side banner if combo > 5
+      if (_comboCount >= 5) {
+        _showSideBanner = true;
+        _showCombo = false; // Hide center combo, show side banner instead
+      }
+
+      // Hide combo after 3 seconds of inactivity
+      _comboTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _showCombo = false;
+            _showSideBanner = false;
+          });
+        }
+      });
+    });
   }
 
   @override
