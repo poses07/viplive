@@ -10,8 +10,8 @@ class ZegoService extends ChangeNotifier {
 
   // Zego Credentials - REPLACE THESE WITH YOUR OWN FROM ZEGO CONSOLE
   // Sign up at https://console.zegocloud.com/
-  final int appID = 123456789; // Example AppID
-  final String appSign = "YOUR_APP_SIGN_HERE"; // Example AppSign
+  final int appID = 341179331; 
+  final String appSign = "db22c1ed05e7f778e4624f656d96a252540090fcb20a3b0bec014bf2c1ddc599"; 
   final bool isTestEnv = true; // Use test environment
 
   bool _isEngineInitialized = false;

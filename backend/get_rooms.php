@@ -1,33 +1,44 @@
 <?php
-// get_rooms.php - Fetch active live rooms
+// get_rooms.php - Fetch active rooms
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header("Content-Type: application/json");
-require 'db.php';
 
-// Optional: Filter by type (live, party, etc.)
-$type = isset($_GET['type']) ? $_GET['type'] : null;
+// Direct DB Connection
+$host = "localhost";
+$username = "d045d473";
+$password = "jHJRCDftddPi4h6Yxqqw";
+$database = "d045d473";
 
-$sql = "SELECT r.id, r.title, r.room_type, r.tag, r.cover_image, r.created_at, 
+$conn = new mysqli($host, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
+}
+
+// Set charset
+$conn->set_charset("utf8mb4");
+
+// Fetch active rooms (is_live = 1) with host details
+$sql = "SELECT r.id, r.title, r.tags, r.image_url, r.viewer_count, r.is_live, 
                u.username as host_name, u.avatar_url as host_avatar
         FROM rooms r
         JOIN users u ON r.host_id = u.id
-        WHERE r.is_active = 1";
-
-if ($type) {
-    $sql .= " AND r.room_type = '" . $conn->real_escape_string($type) . "'";
-}
-
-$sql .= " ORDER BY r.created_at DESC";
+        WHERE r.is_live = 1
+        ORDER BY r.created_at DESC";
 
 $result = $conn->query($sql);
 
 $rooms = [];
-if ($result->num_rows > 0) {
+if ($result) {
     while($row = $result->fetch_assoc()) {
         $rooms[] = $row;
     }
+    echo json_encode($rooms);
+} else {
+    echo json_encode(["error" => "SQL Error: " . $conn->error]);
 }
-
-echo json_encode($rooms);
 
 $conn->close();
 ?>

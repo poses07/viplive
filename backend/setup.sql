@@ -4,6 +4,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    gender VARCHAR(10),
+    country VARCHAR(50),
+    dob DATE,
     avatar_url VARCHAR(255),
     level INT DEFAULT 1,
     diamonds INT DEFAULT 0,

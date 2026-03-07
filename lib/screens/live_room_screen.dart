@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart';
+import '../services/api_service.dart';
 import '../widgets/gift_bottom_sheet.dart';
 
 class LiveRoomScreen extends StatefulWidget {
@@ -28,8 +29,9 @@ class LiveRoomScreen extends StatefulWidget {
 class _LiveRoomScreenState extends State<LiveRoomScreen> {
   // App ID and App Sign from ZegoCloud Console
   // Replace these with your actual App ID and App Sign
-  final int appID = 123456789;
-  final String appSign = 'your_app_sign_here';
+  final int appID = 341179331;
+  final String appSign =
+      'db22c1ed05e7f778e4624f656d96a252540090fcb20a3b0bec014bf2c1ddc599';
 
   final TextEditingController _chatController = TextEditingController();
   final List<String> _messages = ['Canlı yayına hoş geldiniz!'];
@@ -147,6 +149,18 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     double w(double width) => width * (screenSize.width / designWidth);
     double h(double height) => height * (screenSize.height / designHeight);
 
+    // Config for Zego
+    final config =
+        widget.isHost
+            ? ZegoUIKitPrebuiltLiveStreamingConfig.host()
+            : ZegoUIKitPrebuiltLiveStreamingConfig.audience();
+
+    // Hide default close button
+    config.topMenuBar.buttons = [
+      ZegoLiveStreamingMenuBarButtonName.switchCameraButton,
+      ZegoLiveStreamingMenuBarButtonName.toggleMicrophoneButton,
+    ];
+
     return Scaffold(
       body: Stack(
         children: [
@@ -157,10 +171,75 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             userID: widget.userId,
             userName: widget.userName,
             liveID: widget.liveID,
-            config:
-                widget.isHost
-                    ? ZegoUIKitPrebuiltLiveStreamingConfig.host()
-                    : ZegoUIKitPrebuiltLiveStreamingConfig.audience(),
+            config: config,
+          ),
+
+          // Custom Close Button
+          Positioned(
+            top: h(40),
+            right: w(20),
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () async {
+                bool shouldLeave =
+                    await showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          title: const Text(
+                            "Yayını Sonlandır",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          content: const Text(
+                            "Yayını bitirmek ve odayı kapatmak istediğinize emin misiniz?",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text(
+                                "İptal",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                // Call API to end room if Host
+                                if (widget.isHost) {
+                                  try {
+                                    int roomId =
+                                        int.tryParse(
+                                          widget.liveID.replaceAll('room_', ''),
+                                        ) ??
+                                        0;
+                                    if (roomId > 0) {
+                                      await ApiService().endRoom(roomId);
+                                    }
+                                  } catch (e) {
+                                    debugPrint("Error ending room: $e");
+                                  }
+                                }
+                                if (context.mounted) {
+                                  Navigator.of(context).pop(true);
+                                }
+                              },
+                              child: const Text(
+                                "Bitir",
+                                style: TextStyle(color: Color(0xFFE65E8B)),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ) ??
+                    false;
+
+                if (shouldLeave && context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
           ),
 
           // Custom Overlay (Gifts, Entrance, etc.)
