@@ -798,8 +798,8 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   CircleAvatar(
                     radius: 40,
                     backgroundImage: NetworkImage(
-                      (seatData!.user!.avatarUrl.isNotEmpty)
-                          ? seatData.user!.avatarUrl
+                      (seatData!.user!.avatarUrl.toString().isNotEmpty)
+                          ? seatData.user!.avatarUrl.toString()
                           : 'https://i.pravatar.cc/150',
                     ),
                   ),
@@ -1342,7 +1342,11 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   }
 
   Widget _buildBottomBar(double Function(double) w, double Function(double) h) {
-    // final zegoService = Provider.of<ZegoService>(context); // REMOVED
+    final currentUser = Provider.of<UserProvider>(context).currentUser;
+    bool isSeated = false;
+    if (currentUser != null) {
+      isSeated = _seats.any((seat) => seat.user?.id == currentUser.id);
+    }
 
     return Padding(
       padding: EdgeInsets.all(w(16)),
@@ -1352,36 +1356,37 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
           _buildActionButton(Icons.mail, w),
           SizedBox(width: w(12)),
 
-          // Mic Toggle
-          ListenableBuilder(
-            listenable: ZegoService(),
-            builder: (context, _) {
-              bool isMicOn = ZegoService().isMicOn;
-              return GestureDetector(
-                onTap: () async {
-                  await ZegoService().toggleMic();
-                },
-                child: Container(
-                  padding: EdgeInsets.all(w(10)),
-                  decoration: BoxDecoration(
-                    color:
-                        isMicOn
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : Colors.red.withValues(
-                              alpha: 0.8,
-                            ), // Red when muted
-                    shape: BoxShape.circle,
+          // Mic Toggle (Only if seated)
+          if (isSeated)
+            ListenableBuilder(
+              listenable: ZegoService(),
+              builder: (context, _) {
+                bool isMicOn = ZegoService().isMicOn;
+                return GestureDetector(
+                  onTap: () async {
+                    await ZegoService().toggleMic();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(w(10)),
+                    decoration: BoxDecoration(
+                      color:
+                          isMicOn
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : Colors.red.withValues(
+                                alpha: 0.8,
+                              ), // Red when muted
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isMicOn ? Icons.mic : Icons.mic_off,
+                      color: Colors.white,
+                      size: w(24),
+                    ),
                   ),
-                  child: Icon(
-                    isMicOn ? Icons.mic : Icons.mic_off,
-                    color: Colors.white,
-                    size: w(24),
-                  ),
-                ),
-              );
-            },
-          ),
-          SizedBox(width: w(12)),
+                );
+              },
+            ),
+          if (isSeated) SizedBox(width: w(12)),
 
           // Gift Button (Highlighted)
           GestureDetector(
