@@ -295,7 +295,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             ),
           ),
 
-          // SEAT GRID
+          // SEAT GRID (Different for Host and Audience)
           Positioned(
             top: h(100),
             left: w(20),
@@ -311,12 +311,33 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                   mainAxisSpacing: h(10),
                   childAspectRatio: 0.8,
                 ),
-                itemCount: _seats.length,
+                itemCount:
+                    widget.isHost
+                        ? _seats.length
+                        : _seats.where((s) => s.user != null).length,
                 itemBuilder: (context, index) {
-                  final seat = _seats[index];
+                  // For Audience, only show occupied seats
+                  final seat =
+                      widget.isHost
+                          ? _seats[index]
+                          : _seats.where((s) => s.user != null).toList()[index];
+
                   return GestureDetector(
                     onTap: () async {
-                      // Seat Tap Logic (Sit/Leave)
+                      // Only Host or the User themselves can interact
+                      // Audience cannot click empty seats (they are hidden anyway)
+                      // Audience clicking occupied seat -> Profile/Gift? (Not implemented yet)
+
+                      if (widget.isHost) {
+                        // Host Logic: Manage Seat (Kick, Mute, Lock - Todo)
+                      } else {
+                        // Audience Logic: Maybe request to sit?
+                        // Currently disabled for Audience to avoid confusion
+                        return;
+                      }
+
+                      // Old Tap Logic (Sit/Leave) - Temporarily disabled to fix UI first
+                      /*
                       int roomId =
                           int.tryParse(widget.liveID.replaceAll('room_', '')) ??
                           0;
@@ -340,6 +361,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                         );
                       }
                       _fetchSeats(); // Refresh immediately
+                      */
                     },
                     child: Column(
                       children: [
@@ -372,15 +394,18 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                                           ),
                                     ),
                                   )
-                                  : const Icon(
-                                    Icons.add,
-                                    color: Colors.white54,
-                                    size: 20,
-                                  ),
+                                  : (widget.isHost
+                                      ? const Icon(
+                                        Icons.add,
+                                        color: Colors.white54,
+                                        size: 20,
+                                      )
+                                      : SizedBox()), // Audience shouldn't see + icon
                         ),
                         SizedBox(height: h(4)),
                         Text(
-                          seat.user?.username ?? "${index + 1}",
+                          seat.user?.username ??
+                              (widget.isHost ? "${seat.seatIndex + 1}" : ""),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: w(10),
