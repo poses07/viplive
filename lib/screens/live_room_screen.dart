@@ -90,6 +90,22 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
       widget.userName,
       isHost: widget.isHost,
     );
+
+    // Auto-sit if host
+    if (widget.isHost) {
+      int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
+      int userId = int.tryParse(widget.userId) ?? 0;
+      if (roomId > 0 && userId > 0) {
+        await ApiService().updateSeat(
+          roomId: roomId,
+          seatIndex: 0,
+          userId: userId,
+          action: 'sit',
+        );
+        _fetchSeats(); // Refresh seats immediately
+      }
+    }
+
     setState(() {}); // Refresh to show video/audio status
   }
 
@@ -257,17 +273,15 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                       CircleAvatar(
                         radius: w(16),
                         backgroundImage: NetworkImage(
-                          "https://via.placeholder.com/150",
-                        ), // Todo: Host Avatar
+                          "https://i.pravatar.cc/150?u=${widget.userId}",
+                        ), // Host Avatar
                       ),
                       SizedBox(width: w(8)),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.roomTitle.isNotEmpty
-                                ? widget.roomTitle
-                                : "Live Room",
+                            widget.userName, // Use actual username
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: w(12),
