@@ -729,7 +729,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                     child: CircleAvatar(
                       radius: w(16),
                       backgroundImage: NetworkImage(
-                        user['avatar_url'] ?? 'https://i.pravatar.cc/150',
+                        (user['avatar_url'] != null &&
+                                user['avatar_url'].isNotEmpty)
+                            ? user['avatar_url']
+                            : 'https://i.pravatar.cc/150',
                       ),
                     ),
                   ),
@@ -795,7 +798,11 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   ),
                   CircleAvatar(
                     radius: 40,
-                    backgroundImage: NetworkImage(seatData!.user!.avatarUrl),
+                    backgroundImage: NetworkImage(
+                      (seatData!.user!.avatarUrl.isNotEmpty)
+                          ? seatData.user!.avatarUrl
+                          : 'https://i.pravatar.cc/150',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
