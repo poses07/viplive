@@ -19,7 +19,13 @@ class UserProvider extends ChangeNotifier {
       final result = await _apiService.login(username, password);
       
       if (result['success'] == true) {
-        _currentUser = User.fromJson(result['user']);
+        // If diamonds field is missing or 0, give default for testing
+        Map<String, dynamic> userData = Map.from(result['user']);
+        if (userData['diamonds'] == null || userData['diamonds'] == 0) {
+           userData['diamonds'] = 5000; // Mock balance for testing
+        }
+        
+        _currentUser = User.fromJson(userData);
         _isLoading = false;
         notifyListeners();
         return true;

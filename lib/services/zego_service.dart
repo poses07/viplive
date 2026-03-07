@@ -139,6 +139,7 @@ class ZegoService with ChangeNotifier {
   }) async {
     await ZegoExpressEngine.instance.enableCamera(video);
     await ZegoExpressEngine.instance.muteMicrophone(false); // Ensure mic is on
+    await ZegoExpressEngine.instance.muteSpeaker(false); // Ensure speaker is on
     await ZegoExpressEngine.instance.startPublishingStream(streamID);
     isMicOn = true;
     isCameraOn = video;
@@ -162,6 +163,10 @@ class ZegoService with ChangeNotifier {
     isMicOn = !isMicOn;
     await ZegoExpressEngine.instance.muteMicrophone(!isMicOn);
     notifyListeners();
+  }
+
+  Future<void> toggleSpeaker() async {
+    await ZegoExpressEngine.instance.muteSpeaker(false);
   }
 
   Future<void> toggleCamera() async {
