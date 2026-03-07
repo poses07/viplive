@@ -1090,11 +1090,6 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     // Check if this seat is ME
     bool isMe = seatData?.user?.id == currentUser?.id;
     // Show mic status if it's me (since we know local status)
-    // For others, we'd need stream list from Zego
-    bool isMicOn = false; // Default off (No Zego)
-
-    // Mock Talking State (Randomly toggle for effect if mic is on)
-    bool isTalking = false;
 
     return GestureDetector(
       onTap: () => _handleSeatTap(index, seatData),
@@ -1145,12 +1140,13 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   child: Container(
                     padding: EdgeInsets.all(w(2)),
                     decoration: BoxDecoration(
-                      color: isMicOn ? Colors.green : Colors.red,
+                      color:
+                          Colors.red, // Default to off since isMicOn is false
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black, width: 1),
                     ),
                     child: Icon(
-                      isMicOn ? Icons.mic : Icons.mic_off,
+                      Icons.mic_off, // Default to off
                       color: Colors.white,
                       size: w(10),
                     ),
