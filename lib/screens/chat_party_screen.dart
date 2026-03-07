@@ -1071,7 +1071,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   }
 
   Widget _buildSeat(int index, double Function(double) w) {
-    final zegoService = Provider.of<ZegoService>(context);
+    // final zegoService = Provider.of<ZegoService>(context); // REMOVED
     final currentUser = Provider.of<UserProvider>(context).currentUser;
 
     // If we have API data, try to find the seat
@@ -1091,8 +1091,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     bool isMe = seatData?.user?.id == currentUser?.id;
     // Show mic status if it's me (since we know local status)
     // For others, we'd need stream list from Zego
-    bool isMicOn =
-        isMe ? zegoService.isMicOn : false; // Default off for others in mock
+    bool isMicOn = false; // Default off (No Zego)
 
     // Mock Talking State (Randomly toggle for effect if mic is on)
     bool isTalking =
@@ -1200,7 +1199,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   }
 
   Widget _buildBottomBar(double Function(double) w, double Function(double) h) {
-    final zegoService = Provider.of<ZegoService>(context);
+    // final zegoService = Provider.of<ZegoService>(context); // REMOVED
 
     return Padding(
       padding: EdgeInsets.all(w(16)),
@@ -1210,23 +1209,23 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
           _buildActionButton(Icons.mail, w),
           SizedBox(width: w(12)),
 
-          // Mic Toggle
+          // Mic Toggle (Mock)
           GestureDetector(
-            onTap: () => zegoService.toggleMic(),
+            onTap: () {
+              // Mock Toggle
+              setState(() {
+                // isMicOn = !isMicOn; // Local state needed if we want to toggle UI
+              });
+            },
             child: Container(
               padding: EdgeInsets.all(w(10)),
               decoration: BoxDecoration(
-                color:
-                    zegoService.isMicOn
-                        ? Colors.white.withValues(alpha: 0.2)
-                        : Colors.white.withValues(
-                          alpha: 0.8,
-                        ), // Highlight when muted
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                zegoService.isMicOn ? Icons.mic : Icons.mic_off,
-                color: zegoService.isMicOn ? Colors.white : Colors.black,
+                Icons.mic_off, // Default off
+                color: Colors.white,
                 size: w(24),
               ),
             ),
