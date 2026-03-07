@@ -202,7 +202,14 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
               onPressed: () async {
-                bool shouldLeave =
+                // If Audience, just leave
+                if (!widget.isHost) {
+                  Navigator.of(context).pop();
+                  return;
+                }
+
+                // If Host, ask confirmation to end room
+                bool shouldEnd =
                     await showDialog(
                       context: context,
                       builder: (context) {
@@ -226,20 +233,18 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                             ),
                             TextButton(
                               onPressed: () async {
-                                // Call API to end room if Host
-                                if (widget.isHost) {
-                                  try {
-                                    int roomId =
-                                        int.tryParse(
-                                          widget.liveID.replaceAll('room_', ''),
-                                        ) ??
-                                        0;
-                                    if (roomId > 0) {
-                                      await ApiService().endRoom(roomId);
-                                    }
-                                  } catch (e) {
-                                    debugPrint("Error ending room: $e");
+                                // Call API to end room
+                                try {
+                                  int roomId =
+                                      int.tryParse(
+                                        widget.liveID.replaceAll('room_', ''),
+                                      ) ??
+                                      0;
+                                  if (roomId > 0) {
+                                    await ApiService().endRoom(roomId);
                                   }
+                                } catch (e) {
+                                  debugPrint("Error ending room: $e");
                                 }
                                 if (context.mounted) {
                                   Navigator.of(context).pop(true);
@@ -256,7 +261,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                     ) ??
                     false;
 
-                if (shouldLeave && context.mounted) {
+                if (shouldEnd && context.mounted) {
                   Navigator.of(context).pop();
                 }
               },
