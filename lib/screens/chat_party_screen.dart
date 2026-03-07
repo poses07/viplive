@@ -1102,6 +1102,20 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
       );
 
       if (result['success'] == true) {
+        // Zego Stream Management based on action
+        final zegoService = ZegoService();
+        if (action == 'sit') {
+          // Start publishing audio only
+          // Use user ID as stream ID
+          await zegoService.startPublishingStream(
+            currentUser.id.toString(),
+            video: false,
+          );
+        } else if (action == 'leave') {
+          // Stop publishing
+          await zegoService.stopPublishingStream();
+        }
+
         // Refresh immediately after action
         _fetchSeats(background: true);
       } else {
@@ -1353,12 +1367,14 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                     color:
                         isMicOn
                             ? Colors.white.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.8),
+                            : Colors.red.withValues(
+                              alpha: 0.8,
+                            ), // Red when muted
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isMicOn ? Icons.mic : Icons.mic_off,
-                    color: isMicOn ? Colors.white : Colors.black,
+                    color: Colors.white,
                     size: w(24),
                   ),
                 ),

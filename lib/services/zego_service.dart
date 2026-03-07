@@ -48,13 +48,7 @@ class ZegoService with ChangeNotifier {
 
     ZegoExpressEngine.onRemoteSoundLevelUpdate = (soundLevels) {
       // Remote users sound level
-      for (var info in soundLevels.values) {
-        // info is double (level)
-        // Wait, map key is StreamID. We need to map StreamID to UserID.
-        // Or just notify listeners and let UI handle stream ID matching if possible.
-        // Actually onRemoteSoundLevelUpdate signature: (Map<String, double> soundLevels)
-        // Key is streamID.
-      }
+      // We are just storing and notifying, no specific logic needed here yet
       this.soundLevels = soundLevels;
       notifyListeners();
     };
@@ -119,9 +113,27 @@ class ZegoService with ChangeNotifier {
     }
   }
 
+  // Stream Management
+  Future<void> startPublishingStream(
+    String streamID, {
+    bool video = true,
+  }) async {
+    await ZegoExpressEngine.instance.enableCamera(video);
+    await ZegoExpressEngine.instance.muteMicrophone(false); // Ensure mic is on
+    await ZegoExpressEngine.instance.startPublishingStream(streamID);
+    isMicOn = true;
+    isCameraOn = video;
+    notifyListeners();
+  }
+
+  Future<void> stopPublishingStream() async {
+    await ZegoExpressEngine.instance.stopPublishingStream();
+    notifyListeners();
+  }
+
   Future<void> logoutRoom() async {
     if (!isInRoom) return;
-    await ZegoExpressEngine.instance.stopPublishingStream();
+    await stopPublishingStream();
     await ZegoExpressEngine.instance.stopPreview();
     await ZegoExpressEngine.instance.logoutRoom();
   }
