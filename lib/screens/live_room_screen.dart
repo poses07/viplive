@@ -657,19 +657,42 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                   backgroundColor: Colors.transparent,
                   builder:
                       (context) => GiftBottomSheet(
-                        roomId:
-                            int.tryParse(
-                              widget.liveID.replaceAll('room_', ''),
-                            ) ??
-                            0,
-                        receiverId: 1, // Default host ID
-                        onGiftSent: (msg) {
-                          // Extract gift name from message
-                          String giftName = "Gift";
-                          try {
-                            giftName = msg.split(" sent ")[1].split(" x")[0];
-                          } catch (_) {}
-                          _addGiftMessage(msg, giftName);
+                        onSendGift: (gift) async {
+                          // Send gift logic
+                          final apiService = ApiService();
+                          int roomId =
+                              int.tryParse(
+                                widget.liveID.replaceAll('room_', ''),
+                              ) ??
+                              0;
+                          int receiverId =
+                              int.tryParse(widget.userId) ?? 0; // Host ID
+
+                          if (roomId == 0 || receiverId == 0) return;
+
+                          bool success = await apiService.sendGift(
+                            roomId: roomId,
+                            senderId:
+                                1, // Mock current user ID for now or get from provider
+                            receiverId: receiverId,
+                            giftId: gift['id'],
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            if (success) {
+                              _addGiftMessage(
+                                "User sent ${gift['name']}",
+                                gift['name'],
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Hediye gönderilemedi'),
+                                ),
+                              );
+                            }
+                          }
                         },
                       ),
                 );

@@ -1338,18 +1338,60 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
             onTap: () {
               showModalBottomSheet(
                 context: context,
-                builder:
-                    (context) => GiftBottomSheet(
-                      roomId:
-                          widget.roomId ??
-                          0, // 0 as fallback or handle properly
-                      receiverId: 1, // Default to host (ID: 1) or handle logic
-                      onGiftSent: (msg) {
-                        // Handled by backend message stream
-                      },
-                    ),
                 backgroundColor: Colors.transparent,
                 isScrollControlled: true,
+                builder:
+                    (context) => GiftBottomSheet(
+                      onSendGift: (gift) async {
+                        // Default gift to Host (ID 1) or Room Owner
+                        // For now, let's say it goes to the room owner
+                        // We need room owner ID, which might be in widget.roomOwnerId
+                        // Or we can just default to 1 for now if not available
+                        int receiverId = 1;
+                        int roomId = widget.roomId ?? 0;
+
+                        if (roomId == 0) return;
+
+                        final apiService = ApiService();
+                        final currentUser =
+                            Provider.of<UserProvider>(
+                              context,
+                              listen: false,
+                            ).currentUser;
+
+                        if (currentUser == null) return;
+
+                        bool success = await apiService.sendGift(
+                          roomId: roomId,
+                          senderId: currentUser.id,
+                          receiverId: receiverId,
+                          giftId: gift['id'],
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Oda sahibine ${gift['name']} gönderildi!',
+                                ),
+                              ),
+                            );
+                            _sendMessage(
+                              customContent: "sent ${gift['name']} to Host",
+                              customType: 'gift',
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Hediye gönderilemedi'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
               );
             },
             child: Container(
