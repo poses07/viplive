@@ -471,31 +471,31 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   children: [
                     // Chat Area
                     // Wave Animation (Only when talking)
-              if (isTalking)
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 1.0, end: 1.4),
-                  duration: const Duration(milliseconds: 1000),
-                  builder: (context, scale, child) {
-                    return Container(
-                      width: w(50) * scale,
-                      height: w(50) * scale,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(
-                            0xFF66B4FF,
-                          ).withValues(alpha: 1.4 - scale),
-                          width: 2,
-                        ),
+                    if (isTalking)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 1.0, end: 1.4),
+                        duration: const Duration(milliseconds: 1000),
+                        builder: (context, scale, child) {
+                          return Container(
+                            width: w(50) * scale,
+                            height: w(50) * scale,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF66B4FF,
+                                ).withValues(alpha: 1.4 - scale),
+                                width: 2,
+                              ),
+                            ),
+                          );
+                        },
+                        onEnd: () {
+                          // Loop animation if still talking (requires state rebuild, simple handled by periodic build in real app)
+                        },
                       ),
-                    );
-                  },
-                  onEnd: () {
-                    // Loop animation if still talking (requires state rebuild, simple handled by periodic build in real app)
-                  },
-                ),
 
-              Container(
+                    Container(
                       height: h(200),
                       padding: EdgeInsets.symmetric(horizontal: w(16)),
                       child: Column(
@@ -1123,12 +1123,38 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     bool isMicOn = isMe ? ZegoService().isMicOn : false;
 
     // Mock Talking State (Randomly toggle for effect if mic is on)
-    bool isTalking = isMicOn && (DateTime.now().millisecondsSinceEpoch % 2000 < 1000);
+    bool isTalking =
+        isMicOn && (DateTime.now().millisecondsSinceEpoch % 2000 < 1000);
+
+    return GestureDetector(
+      onTap: () => _handleSeatTap(index, seatData),
       child: Column(
         children: [
           Stack(
             alignment: Alignment.center,
             children: [
+              // Wave Animation (Only when talking)
+              if (isTalking)
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 1.0, end: 1.4),
+                  duration: const Duration(milliseconds: 1000),
+                  builder: (context, scale, child) {
+                    return Container(
+                      width: w(50) * scale,
+                      height: w(50) * scale,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(
+                            0xFF66B4FF,
+                          ).withValues(alpha: 1.4 - scale),
+                          width: 2,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
               Container(
                 width: w(50),
                 height: w(50),
@@ -1213,14 +1239,15 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
               bool isMicOn = ZegoService().isMicOn;
               return GestureDetector(
                 onTap: () async {
-                   await ZegoService().toggleMic();
+                  await ZegoService().toggleMic();
                 },
                 child: Container(
                   padding: EdgeInsets.all(w(10)),
                   decoration: BoxDecoration(
-                    color: isMicOn 
-                        ? Colors.white.withValues(alpha: 0.2) 
-                        : Colors.white.withValues(alpha: 0.8),
+                    color:
+                        isMicOn
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.8),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1230,7 +1257,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   ),
                 ),
               );
-            }
+            },
           ),
           SizedBox(width: w(12)),
 
