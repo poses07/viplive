@@ -256,26 +256,35 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     });
   }
 
-  Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _isSending) return;
+  Future<void> _sendMessage({
+    String? customContent,
+    String customType = 'text',
+  }) async {
     final currentUser =
         Provider.of<UserProvider>(context, listen: false).currentUser;
     if (currentUser == null || widget.roomId == null) return;
 
-    setState(() => _isSending = true);
-    final content = _messageController.text.trim();
-    _messageController.clear(); // Optimistic clear
+    String content = customContent ?? _messageController.text.trim();
+    if (content.isEmpty) return;
+
+    if (customContent == null) {
+      // Only block UI for manual messages
+      if (_isSending) return;
+      setState(() => _isSending = true);
+      _messageController.clear(); // Optimistic clear
+    }
 
     try {
       final success = await ApiService().sendMessage(
         widget.roomId!,
         currentUser.id,
         content,
+        type: customType,
       );
 
       if (success) {
         _fetchMessages(background: true); // Fetch immediately
-      } else {
+      } else if (customContent == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to send message')),
@@ -286,7 +295,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     } catch (e) {
       debugPrint('Error sending message: $e');
     } finally {
-      if (mounted) setState(() => _isSending = false);
+      if (customContent == null && mounted) setState(() => _isSending = false);
     }
   }
 
@@ -803,18 +812,57 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                           isScrollControlled: true,
                           builder:
                               (context) => GiftBottomSheet(
-                                onSendGift: (gift) {
-                                  // Send gift logic here
+                                onSendGift: (gift) async {
                                   final apiService = ApiService();
-                                  // Implement sendGift API call
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '${gift['name']} gönderildi!',
-                                      ),
-                                    ),
+
+                                  // Check if roomId is valid
+                                  int roomId = widget.roomId ?? 0;
+                                  if (roomId == 0) return;
+
+                                  bool success = await apiService.sendGift(
+                                    roomId: roomId,
+                                    senderId: currentUser.id,
+                                    receiverId: seatData!.user!.id,
+                                    giftId: gift['id'],
                                   );
+
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    if (success) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            '${seatData.user!.username} kullanıcısına ${gift['name']} gönderildi!',
+                                          ),
+                                        ),
+                                      );
+                                      // Send gift message to chat
+                                      try {
+                                        await apiService.sendMessage(
+                                          roomId,
+                                          currentUser.id,
+                                          "sent ${gift['name']}",
+                                        );
+                                      } catch (e) {
+                                        debugPrint(
+                                          'Error sending gift message: $e',
+                                        );
+                                      }
+                                      _fetchMessages(background: true);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Hediye gönderilemedi (Yetersiz bakiye olabilir)',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
                                 },
                               ),
                         );

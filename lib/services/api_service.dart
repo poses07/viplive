@@ -186,6 +186,36 @@ class ApiService {
     }
   }
 
+  // Send Gift
+  Future<bool> sendGift({
+    required int roomId,
+    required int senderId,
+    required int receiverId,
+    required int giftId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/send_gift.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'room_id': roomId,
+          'sender_id': senderId,
+          'receiver_id': receiverId,
+          'gift_id': giftId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error sending gift: $e');
+      return false;
+    }
+  }
+
   // Get active rooms
   Future<List<Room>> getRooms({String? type}) async {
     try {
