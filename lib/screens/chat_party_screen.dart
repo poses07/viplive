@@ -729,9 +729,8 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                     child: CircleAvatar(
                       radius: w(16),
                       backgroundImage: NetworkImage(
-                        (user['avatar_url'] != null &&
-                                user['avatar_url'].isNotEmpty)
-                            ? user['avatar_url']
+                        (user['avatar_url']?.toString().isNotEmpty ?? false)
+                            ? user['avatar_url'].toString()
                             : 'https://i.pravatar.cc/150',
                       ),
                     ),
