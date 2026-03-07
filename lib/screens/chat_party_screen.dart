@@ -470,31 +470,6 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 Column(
                   children: [
                     // Chat Area
-                    // Wave Animation (Only when talking)
-                    if (isTalking)
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 1.0, end: 1.4),
-                        duration: const Duration(milliseconds: 1000),
-                        builder: (context, scale, child) {
-                          return Container(
-                            width: w(50) * scale,
-                            height: w(50) * scale,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(
-                                  0xFF66B4FF,
-                                ).withValues(alpha: 1.4 - scale),
-                                width: 2,
-                              ),
-                            ),
-                          );
-                        },
-                        onEnd: () {
-                          // Loop animation if still talking (requires state rebuild, simple handled by periodic build in real app)
-                        },
-                      ),
-
                     Container(
                       height: h(200),
                       padding: EdgeInsets.symmetric(horizontal: w(16)),

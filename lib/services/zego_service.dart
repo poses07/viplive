@@ -116,18 +116,12 @@ class ZegoService with ChangeNotifier {
 
   // View Container Management
   Future<void> startPreview(int viewID) async {
-    ZegoCanvas canvas = ZegoCanvas(
-      view: viewID,
-      viewMode: ZegoViewMode.AspectFill,
-    );
+    ZegoCanvas canvas = ZegoCanvas(viewID, viewMode: ZegoViewMode.AspectFill);
     await ZegoExpressEngine.instance.startPreview(canvas: canvas);
   }
 
   Future<void> startPlayingStream(String streamID, int viewID) async {
-    ZegoCanvas canvas = ZegoCanvas(
-      view: viewID,
-      viewMode: ZegoViewMode.AspectFill,
-    );
+    ZegoCanvas canvas = ZegoCanvas(viewID, viewMode: ZegoViewMode.AspectFill);
     await ZegoExpressEngine.instance.startPlayingStream(
       streamID,
       canvas: canvas,
