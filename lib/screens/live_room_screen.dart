@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart';
 import '../services/api_service.dart';
 import '../widgets/gift_bottom_sheet.dart';
+import '../models/seat.dart';
 
 class LiveRoomScreen extends StatefulWidget {
   final String roomTitle;
@@ -36,6 +37,10 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   final TextEditingController _chatController = TextEditingController();
   final List<String> _messages = ['Canlı yayına hoş geldiniz!'];
 
+  // Seats
+  List<Seat> _seats = [];
+  Timer? _pollingTimer;
+
   bool _showEntranceEffect = false;
   String _enteringUserName = "";
 
@@ -50,6 +55,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchSeats();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      _fetchSeats();
+    });
+
     // Simulate entrance effect
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -135,9 +145,26 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _comboTimer?.cancel();
     _chatController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchSeats() async {
+    try {
+      int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
+      if (roomId == 0) return;
+
+      final seats = await ApiService().getRoomSeats(roomId);
+      if (mounted) {
+        setState(() {
+          _seats = seats;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching seats: $e");
+    }
   }
 
   @override
@@ -265,6 +292,106 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                   Navigator.of(context).pop();
                 }
               },
+            ),
+          ),
+
+          // SEAT GRID
+          Positioned(
+            top: h(100),
+            left: w(20),
+            right: w(20),
+            child: SizedBox(
+              height: h(120),
+              child: GridView.builder(
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: w(10),
+                  mainAxisSpacing: h(10),
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: _seats.length,
+                itemBuilder: (context, index) {
+                  final seat = _seats[index];
+                  return GestureDetector(
+                    onTap: () async {
+                      // Seat Tap Logic (Sit/Leave)
+                      int roomId =
+                          int.tryParse(widget.liveID.replaceAll('room_', '')) ??
+                          0;
+                      int userId = int.tryParse(widget.userId) ?? 0;
+
+                      if (seat.user == null) {
+                        // Empty seat -> Sit
+                        await ApiService().updateSeat(
+                          roomId: roomId,
+                          seatIndex: seat.seatIndex,
+                          userId: userId,
+                          action: 'sit',
+                        );
+                      } else if (seat.user?.id == userId) {
+                        // My seat -> Leave
+                        await ApiService().updateSeat(
+                          roomId: roomId,
+                          seatIndex: seat.seatIndex,
+                          userId: userId,
+                          action: 'leave',
+                        );
+                      }
+                      _fetchSeats(); // Refresh immediately
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          width: w(40),
+                          height: w(40),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color:
+                                  seat.user != null
+                                      ? const Color(0xFFE65E8B)
+                                      : Colors.white24,
+                              width: 1,
+                            ),
+                          ),
+                          child:
+                              seat.user != null
+                                  ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(w(20)),
+                                    child: Image.network(
+                                      seat.user?.avatarUrl ??
+                                          "https://via.placeholder.com/150",
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (_, __, ___) => const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                          ),
+                                    ),
+                                  )
+                                  : const Icon(
+                                    Icons.add,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
+                        ),
+                        SizedBox(height: h(4)),
+                        Text(
+                          seat.user?.username ?? "${index + 1}",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: w(10),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
 

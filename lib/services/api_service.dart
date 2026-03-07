@@ -297,6 +297,26 @@ class ApiService {
     }
   }
 
+  // End Room
+  Future<bool> endRoom(int roomId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/end_room.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'room_id': roomId}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error ending room: $e');
+      return false;
+    }
+  }
+
   // Follow User
   Future<Map<String, dynamic>> followUser({
     required int followerId,
