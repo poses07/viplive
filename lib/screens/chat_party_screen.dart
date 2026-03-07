@@ -822,7 +822,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                                   bool success = await apiService.sendGift(
                                     roomId: roomId,
                                     senderId: currentUser.id,
-                                    receiverId: seatData!.user!.id,
+                                    receiverId: seatData.user!.id,
                                     giftId: gift['id'],
                                   );
 
@@ -844,6 +844,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                                           roomId,
                                           currentUser.id,
                                           "sent ${gift['name']}",
+                                          type: 'gift', // Add type argument
                                         );
                                       } catch (e) {
                                         debugPrint(
