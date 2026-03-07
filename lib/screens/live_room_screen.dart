@@ -295,7 +295,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             ),
           ),
 
-          // SEAT GRID (Different for Host and Audience)
+          // SEAT GRID (Same for Host and Audience)
           Positioned(
             top: h(100),
             left: w(20),
@@ -311,33 +311,12 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                   mainAxisSpacing: h(10),
                   childAspectRatio: 0.8,
                 ),
-                itemCount:
-                    widget.isHost
-                        ? _seats.length
-                        : _seats.where((s) => s.user != null).length,
+                itemCount: _seats.length,
                 itemBuilder: (context, index) {
-                  // For Audience, only show occupied seats
-                  final seat =
-                      widget.isHost
-                          ? _seats[index]
-                          : _seats.where((s) => s.user != null).toList()[index];
-
+                  final seat = _seats[index];
                   return GestureDetector(
                     onTap: () async {
-                      // Only Host or the User themselves can interact
-                      // Audience cannot click empty seats (they are hidden anyway)
-                      // Audience clicking occupied seat -> Profile/Gift? (Not implemented yet)
-
-                      if (widget.isHost) {
-                        // Host Logic: Manage Seat (Kick, Mute, Lock - Todo)
-                      } else {
-                        // Audience Logic: Maybe request to sit?
-                        // Currently disabled for Audience to avoid confusion
-                        return;
-                      }
-
-                      // Old Tap Logic (Sit/Leave) - Temporarily disabled to fix UI first
-                      /*
+                      // Seat Tap Logic (Sit/Leave)
                       int roomId =
                           int.tryParse(widget.liveID.replaceAll('room_', '')) ??
                           0;
@@ -345,6 +324,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
                       if (seat.user == null) {
                         // Empty seat -> Sit
+                        // Note: Real apps might require 'Request to Join' here
                         await ApiService().updateSeat(
                           roomId: roomId,
                           seatIndex: seat.seatIndex,
@@ -361,7 +341,6 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                         );
                       }
                       _fetchSeats(); // Refresh immediately
-                      */
                     },
                     child: Column(
                       children: [
@@ -394,18 +373,15 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                                           ),
                                     ),
                                   )
-                                  : (widget.isHost
-                                      ? const Icon(
-                                        Icons.add,
-                                        color: Colors.white54,
-                                        size: 20,
-                                      )
-                                      : SizedBox()), // Audience shouldn't see + icon
+                                  : const Icon(
+                                    Icons.add,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
                         ),
                         SizedBox(height: h(4)),
                         Text(
-                          seat.user?.username ??
-                              (widget.isHost ? "${seat.seatIndex + 1}" : ""),
+                          seat.user?.username ?? "${seat.seatIndex + 1}",
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: w(10),
