@@ -4,7 +4,7 @@ import '../widgets/gift_bottom_sheet.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-// import '../services/zego_service.dart'; // REMOVED
+import '../services/zego_service.dart';
 import '../models/seat.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
@@ -67,25 +67,30 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
       });
 
       // Join Voice Room
-      // WidgetsBinding.instance.addPostFrameCallback((_) {
-      //   _joinVoiceRoom();
-      // });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _joinVoiceRoom();
+      });
     }
   }
 
-  // Future<void> _joinVoiceRoom() async {
-  //   final userProvider = Provider.of<UserProvider>(context, listen: false);
-  //   final zegoService = Provider.of<ZegoService>(context, listen: false);
-  //   final currentUser = userProvider.currentUser;
-  //
-  //   if (currentUser != null && widget.roomId != null) {
-  //     await zegoService.joinRoom(
-  //       widget.roomId.toString(),
-  //       currentUser.id.toString(),
-  //       currentUser.username,
-  //     );
-  //   }
-  // }
+  Future<void> _joinVoiceRoom() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final zegoService = ZegoService();
+    final currentUser = userProvider.currentUser;
+
+    if (currentUser != null && widget.roomId != null) {
+      await zegoService.loginRoom(
+        widget.roomId.toString(),
+        currentUser.id.toString(),
+        currentUser.username,
+        isHost:
+            false, // Party members are not "Host" in video sense, but can publish audio
+      );
+
+      // In Party mode, usually we auto-publish audio if seated, or listen if audience
+      // Logic handled in _fetchSeats or seat tap
+    }
+  }
 
   Future<void> _fetchSeats({bool background = false}) async {
     if (!background) setState(() => _isLoadingSeats = true);
@@ -168,10 +173,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
 
     // Only destroy if we are leaving the screen entirely, not just pushing a new route
     // But for now, let's keep it simple and leave room on dispose
-    // final zegoService = Provider.of<ZegoService>(context, listen: false);
-    // if (zegoService.isInRoom) {
-    //   zegoService.leaveRoom();
-    // }
+    final zegoService = ZegoService();
+    if (zegoService.isInRoom) {
+      zegoService.logoutRoom();
+    }
     super.dispose();
   }
 
@@ -465,7 +470,32 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 Column(
                   children: [
                     // Chat Area
-                    Container(
+                    // Wave Animation (Only when talking)
+              if (isTalking)
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 1.0, end: 1.4),
+                  duration: const Duration(milliseconds: 1000),
+                  builder: (context, scale, child) {
+                    return Container(
+                      width: w(50) * scale,
+                      height: w(50) * scale,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(
+                            0xFF66B4FF,
+                          ).withValues(alpha: 1.4 - scale),
+                          width: 2,
+                        ),
+                      ),
+                    );
+                  },
+                  onEnd: () {
+                    // Loop animation if still talking (requires state rebuild, simple handled by periodic build in real app)
+                  },
+                ),
+
+              Container(
                       height: h(200),
                       padding: EdgeInsets.symmetric(horizontal: w(16)),
                       child: Column(
@@ -1071,7 +1101,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   }
 
   Widget _buildSeat(int index, double Function(double) w) {
-    // final zegoService = Provider.of<ZegoService>(context); // REMOVED
+    // final zegoService = Provider.of<ZegoService>(context); // Removed provider usage
     final currentUser = Provider.of<UserProvider>(context).currentUser;
 
     // If we have API data, try to find the seat
@@ -1090,9 +1120,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     // Check if this seat is ME
     bool isMe = seatData?.user?.id == currentUser?.id;
     // Show mic status if it's me (since we know local status)
+    bool isMicOn = isMe ? ZegoService().isMicOn : false;
 
-    return GestureDetector(
-      onTap: () => _handleSeatTap(index, seatData),
+    // Mock Talking State (Randomly toggle for effect if mic is on)
+    bool isTalking = isMicOn && (DateTime.now().millisecondsSinceEpoch % 2000 < 1000);
       child: Column(
         children: [
           Stack(
@@ -1140,13 +1171,12 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   child: Container(
                     padding: EdgeInsets.all(w(2)),
                     decoration: BoxDecoration(
-                      color:
-                          Colors.red, // Default to off since isMicOn is false
+                      color: isMicOn ? Colors.green : Colors.red,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black, width: 1),
                     ),
                     child: Icon(
-                      Icons.mic_off, // Default to off
+                      isMicOn ? Icons.mic : Icons.mic_off,
                       color: Colors.white,
                       size: w(10),
                     ),
@@ -1176,26 +1206,31 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
           _buildActionButton(Icons.mail, w),
           SizedBox(width: w(12)),
 
-          // Mic Toggle (Mock)
-          GestureDetector(
-            onTap: () {
-              // Mock Toggle
-              setState(() {
-                // isMicOn = !isMicOn; // Local state needed if we want to toggle UI
-              });
-            },
-            child: Container(
-              padding: EdgeInsets.all(w(10)),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.mic_off, // Default off
-                color: Colors.white,
-                size: w(24),
-              ),
-            ),
+          // Mic Toggle
+          ListenableBuilder(
+            listenable: ZegoService(),
+            builder: (context, _) {
+              bool isMicOn = ZegoService().isMicOn;
+              return GestureDetector(
+                onTap: () async {
+                   await ZegoService().toggleMic();
+                },
+                child: Container(
+                  padding: EdgeInsets.all(w(10)),
+                  decoration: BoxDecoration(
+                    color: isMicOn 
+                        ? Colors.white.withValues(alpha: 0.2) 
+                        : Colors.white.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isMicOn ? Icons.mic : Icons.mic_off,
+                    color: isMicOn ? Colors.white : Colors.black,
+                    size: w(24),
+                  ),
+                ),
+              );
+            }
           ),
           SizedBox(width: w(12)),
 

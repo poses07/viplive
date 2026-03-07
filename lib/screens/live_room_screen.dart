@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-// import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart'; // REMOVED
+import 'package:zego_express_engine/zego_express_engine.dart';
 import '../services/api_service.dart';
+import '../services/zego_service.dart';
 import '../widgets/gift_bottom_sheet.dart';
 import '../models/seat.dart';
 
@@ -51,6 +52,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize Zego Service
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initZego();
+    });
+
     _fetchSeats();
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       _fetchSeats();
@@ -75,68 +81,16 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     });
   }
 
-  void _addGiftMessage(String message, String giftName) {
-    setState(() {
-      // Extract sender name
-      String senderName = "User";
-      try {
-        senderName = message.split(" sent ")[0];
-      } catch (_) {}
-
-      // Update existing message if it's the same gift/sender
-      bool updated = false;
-      if (_messages.isNotEmpty) {
-        String lastMsg = _messages[0];
-        if (lastMsg.startsWith("$senderName sent $giftName")) {
-          // Check if it already has a multiplier
-          if (lastMsg.contains(" x")) {
-            try {
-              int count = int.parse(lastMsg.split(" x")[1]);
-              _messages[0] = "$senderName sent $giftName x${count + 1}";
-              updated = true;
-            } catch (_) {}
-          } else {
-            // First multiplier
-            _messages[0] = "$senderName sent $giftName x2";
-            updated = true;
-          }
-        }
-      }
-
-      if (!updated) {
-        _messages.insert(0, "$senderName sent $giftName x1");
-      }
-
-      // Combo Logic
-      if (_lastGiftName == giftName &&
-          _lastSenderName == senderName &&
-          (_showCombo || _showSideBanner)) {
-        _comboCount++;
-        _comboTimer?.cancel();
-      } else {
-        _comboCount = 1;
-        _lastGiftName = giftName;
-        _lastSenderName = senderName;
-        _showCombo = true;
-        _showSideBanner = false;
-      }
-
-      // Show side banner if combo > 5
-      if (_comboCount >= 5) {
-        _showSideBanner = true;
-        _showCombo = false; // Hide center combo, show side banner instead
-      }
-
-      // Hide combo after 3 seconds of inactivity
-      _comboTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            _showCombo = false;
-            _showSideBanner = false;
-          });
-        }
-      });
-    });
+  Future<void> _initZego() async {
+    final zegoService = ZegoService();
+    // Login to room
+    await zegoService.loginRoom(
+      widget.liveID.replaceAll('room_', ''), // Using numeric ID for room
+      widget.userId,
+      widget.userName,
+      isHost: widget.isHost,
+    );
+    setState(() {}); // Refresh to show video/audio status
   }
 
   @override
@@ -144,6 +98,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     _pollingTimer?.cancel();
     _comboTimer?.cancel();
     _chatController.dispose();
+    ZegoService().logoutRoom(); // Logout when leaving screen
     super.dispose();
   }
 
@@ -192,7 +147,28 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           // 2. Dark Overlay
           Container(color: Colors.black.withValues(alpha: 0.6)),
 
-          // 3. Removed Zego Video Layer
+          // 3. Zego Video Layer (Custom SDK Implementation)
+          if (widget.roomTag == 'live' && ZegoService().isCameraOn)
+            FutureBuilder<Widget?>(
+              future: ZegoExpressEngine.instance.createCanvasView((viewID) {
+                if (widget.isHost) {
+                  ZegoService().startPreview(viewID);
+                } else {
+                  // Audience plays host stream
+                  // Stream ID convention: roomID_host
+                  ZegoService().startPlayingStream(
+                    "${widget.liveID.replaceAll('room_', '')}_host",
+                    viewID,
+                  );
+                }
+              }),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data != null) {
+                  return snapshot.data!;
+                }
+                return Center(child: CircularProgressIndicator());
+              },
+            ),
 
           // 4. Custom Top Bar (Profile Info & Close Button)
           Positioned(

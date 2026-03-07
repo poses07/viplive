@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Canlı yayın için kameranıza erişim izni gerekiyor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Canlı yayın ve sesli sohbet için mikrofona erişim izni gerekiyor.</string>
 </dict>
 </plist>

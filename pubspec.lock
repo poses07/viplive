@@ -272,6 +272,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
+  js:
+    dependency: transitive
+    description:
+      name: js
+      sha256: f2c445dce49627136094980615a031419f7f3eb393237e4ecd97ac15dea343f3
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.7"
   leak_tracker:
     dependency: transitive
     description:
@@ -557,6 +565,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.5.0"
+  zego_express_engine:
+    dependency: "direct main"
+    description:
+      name: zego_express_engine
+      sha256: eae6a7b9c7bf0d526faac61ea55188263e5501c7238293f0de5d811103bf9b5f
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.23.0"
 sdks:
   dart: ">=3.7.2 <4.0.0"
   flutter: ">=3.29.0"
