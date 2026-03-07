@@ -155,6 +155,13 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             ? ZegoUIKitPrebuiltLiveStreamingConfig.host()
             : ZegoUIKitPrebuiltLiveStreamingConfig.audience();
 
+    // Force camera and mic on for host
+    if (widget.isHost) {
+      config.turnOnCameraWhenJoining = true;
+      config.turnOnMicrophoneWhenJoining = true;
+      config.useSpeakerWhenJoining = true;
+    }
+
     // Hide default close button
     config.topMenuBar.buttons = [
       ZegoLiveStreamingMenuBarButtonName.switchCameraButton,
