@@ -25,9 +25,13 @@ class ZegoService with ChangeNotifier {
     if (_isEngineCreated) return;
 
     // Create Engine
-    // Use StandardVideoCall for better compatibility and potentially bypassing some token restrictions in test mode
+    // Use HighQualityChatroom for voice chat apps
     await ZegoExpressEngine.createEngineWithProfile(
-      ZegoEngineProfile(appID, ZegoScenario.StandardVideoCall, appSign: appSign),
+      ZegoEngineProfile(
+        appID,
+        ZegoScenario.HighQualityChatroom,
+        appSign: appSign,
+      ),
     );
 
     _isEngineCreated = true;
