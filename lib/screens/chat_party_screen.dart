@@ -499,16 +499,17 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 ),
 
                 // Bottom Section
-                Column(
-                  children: [
-                    // Chat Area
-                    Expanded(
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: w(16)),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ListView.builder(
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Chat Area
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: w(16)),
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: ListView.builder(
                               controller: _scrollController,
                               itemCount: _messages.length,
                               itemBuilder: (context, index) {
@@ -704,9 +705,11 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
           const Spacer(),
 
           // Audience List
-          SizedBox(
-            height: w(32),
-            child: ListView.builder(
+          if (_audience.isNotEmpty)
+            SizedBox(
+              height: w(32),
+              width: w(120), // Limit width to prevent overflow
+              child: ListView.builder(
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
               itemCount: _audience.length,
@@ -715,26 +718,18 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 return Padding(
                   padding: EdgeInsets.only(right: w(4)),
                   child: GestureDetector(
-                    onTap: () {
-                      // Show profile on tap
-                      showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        builder:
-                            (context) => ProfileScreen(
-                              userId: int.tryParse(user['id'].toString()) ?? 0,
-                            ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      radius: w(16),
-                      backgroundImage: NetworkImage(
-                        (user['avatar_url']?.toString().isNotEmpty ?? false)
-                            ? user['avatar_url'].toString()
-                            : 'https://i.pravatar.cc/150',
+                      onTap: () {
+                        // Show profile or ignore
+                      },
+                      child: CircleAvatar(
+                        radius: w(16),
+                        backgroundImage: NetworkImage(
+                          (user['avatar_url']?.toString().isNotEmpty ?? false)
+                              ? user['avatar_url'].toString()
+                              : 'https://i.pravatar.cc/150',
+                        ),
                       ),
                     ),
-                  ),
                 );
               },
             ),
