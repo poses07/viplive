@@ -322,7 +322,147 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     }
   }
 
-  // _addGiftMessage removed as it is now handled by backend messages
+  Widget _buildBottomSection(
+    double Function(double) w,
+    double Function(double) h,
+  ) {
+    return Expanded(
+      child: Column(
+        children: [
+          // Chat Area
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: w(16)),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        String content = '';
+                        String username = '';
+                        String type = 'text';
+
+                        if (msg is String) {
+                          content = msg;
+                          type = 'system';
+                        } else if (msg is Map) {
+                          content = msg['content'] ?? '';
+                          username = msg['username'] ?? 'User';
+                          type = msg['type'] ?? 'text';
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: RichText(
+                              text: TextSpan(
+                                children: [
+                                  if (username.isNotEmpty)
+                                    TextSpan(
+                                      text: '$username: ',
+                                      style: TextStyle(
+                                        color: Colors.yellowAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: w(12),
+                                      ),
+                                    ),
+                                  TextSpan(
+                                    text: content,
+                                    style: TextStyle(
+                                      color:
+                                          type == 'gift'
+                                              ? Colors.pinkAccent
+                                              : Colors.white,
+                                      fontSize: w(12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: h(10)),
+                  // Input Field (Visible to everyone)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Bir şeyler söyle...',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: w(14),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: w(16),
+                                vertical: h(10),
+                              ),
+                            ),
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: w(10)),
+                      GestureDetector(
+                        onTap: () => _sendMessage(),
+                        child: Container(
+                          padding: EdgeInsets.all(w(10)),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE65E8B),
+                            shape: BoxShape.circle,
+                          ),
+                          child:
+                              _isSending
+                                  ? SizedBox(
+                                    width: w(20),
+                                    height: w(20),
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : Icon(
+                                    Icons.send,
+                                    color: Colors.white,
+                                    size: w(20),
+                                  ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom Actions Bar
+          _buildBottomBar(w, h),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -499,145 +639,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 ),
 
                 // Bottom Section
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Chat Area
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: w(16)),
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: ListView.builder(
-                              controller: _scrollController,
-                              itemCount: _messages.length,
-                              itemBuilder: (context, index) {
-                                final msg = _messages[index];
-                                String content = '';
-                                String username = '';
-                                String type = 'text';
-
-                                if (msg is String) {
-                                  content = msg;
-                                  type = 'system';
-                                } else if (msg is Map) {
-                                  content = msg['content'] ?? '';
-                                  username = msg['username'] ?? 'User';
-                                  type = msg['type'] ?? 'text';
-                                }
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          if (username.isNotEmpty)
-                                            TextSpan(
-                                              text: '$username: ',
-                                              style: TextStyle(
-                                                color: Colors.yellowAccent,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: w(12),
-                                              ),
-                                            ),
-                                          TextSpan(
-                                            text: content,
-                                            style: TextStyle(
-                                              color:
-                                                  type == 'gift'
-                                                      ? Colors.pinkAccent
-                                                      : Colors.white,
-                                              fontSize: w(12),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          SizedBox(height: h(10)),
-                          // Input Field (Visible to everyone)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: TextField(
-                                    controller: _messageController,
-                                    style: const TextStyle(color: Colors.white),
-                                    decoration: InputDecoration(
-                                      hintText: 'Bir şeyler söyle...',
-                                      hintStyle: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        fontSize: w(14),
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: w(16),
-                                        vertical: h(10),
-                                      ),
-                                    ),
-                                    onSubmitted: (_) => _sendMessage(),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: w(10)),
-                              GestureDetector(
-                                onTap: _sendMessage,
-                                child: Container(
-                                  padding: EdgeInsets.all(w(10)),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFE65E8B),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child:
-                                      _isSending
-                                          ? SizedBox(
-                                            width: w(20),
-                                            height: w(20),
-                                            child:
-                                                const CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 2,
-                                                ),
-                                          )
-                                          : Icon(
-                                            Icons.send,
-                                            color: Colors.white,
-                                            size: w(20),
-                                          ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Bottom Actions Bar
-                    _buildBottomBar(w, h),
-                  ],
-                ),
+                _buildBottomSection(w, h),
               ],
             ),
           ),
@@ -710,14 +712,14 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
               height: w(32),
               width: w(120), // Limit width to prevent overflow
               child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              shrinkWrap: true,
-              itemCount: _audience.length,
-              itemBuilder: (context, index) {
-                final user = _audience[index];
-                return Padding(
-                  padding: EdgeInsets.only(right: w(4)),
-                  child: GestureDetector(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                itemCount: _audience.length,
+                itemBuilder: (context, index) {
+                  final user = _audience[index];
+                  return Padding(
+                    padding: EdgeInsets.only(right: w(4)),
+                    child: GestureDetector(
                       onTap: () {
                         // Show profile or ignore
                       },
@@ -730,10 +732,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                         ),
                       ),
                     ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
 
           SizedBox(width: w(10)),
 
