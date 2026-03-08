@@ -502,13 +502,13 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                 Column(
                   children: [
                     // Chat Area
-                    Container(
-                      height: h(200),
-                      padding: EdgeInsets.symmetric(horizontal: w(16)),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: ListView.builder(
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: w(16)),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ListView.builder(
                               controller: _scrollController,
                               itemCount: _messages.length,
                               itemBuilder: (context, index) {

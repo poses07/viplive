@@ -25,8 +25,9 @@ class ZegoService with ChangeNotifier {
     if (_isEngineCreated) return;
 
     // Create Engine
+    // Use StandardVideoCall for better compatibility and potentially bypassing some token restrictions in test mode
     await ZegoExpressEngine.createEngineWithProfile(
-      ZegoEngineProfile(appID, ZegoScenario.Default, appSign: appSign),
+      ZegoEngineProfile(appID, ZegoScenario.StandardVideoCall, appSign: appSign),
     );
 
     _isEngineCreated = true;
