@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
+import '../utils/zego_token_manager.dart'; // Import token manager
 
 class ZegoService with ChangeNotifier {
   static final ZegoService _instance = ZegoService._internal();
@@ -111,8 +112,6 @@ class ZegoService with ChangeNotifier {
     };
   }
 
-import '../utils/zego_token_manager.dart'; // Import token manager
-
   Future<void> loginRoom(
     String roomID,
     String userID,
@@ -124,12 +123,13 @@ import '../utils/zego_token_manager.dart'; // Import token manager
     ZegoUser user = ZegoUser(userID, userName);
     ZegoRoomConfig config = ZegoRoomConfig.defaultConfig();
     config.isUserStatusNotify = true;
-    
+
     // Generate Token
     String token = ZegoTokenUtils.generateToken(
-      appId: appID, 
-      serverSecret: "aef6a32ad60b7ed6142567bafc312cd2", // Should be in env or remote config
-      userId: userID
+      appId: appID,
+      serverSecret:
+          "aef6a32ad60b7ed6142567bafc312cd2", // Should be in env or remote config
+      userId: userID,
     );
     config.token = token;
 
