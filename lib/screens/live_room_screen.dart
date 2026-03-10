@@ -275,12 +275,15 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         children: [
           // 1. Background Image (Always visible)
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
                 image: NetworkImage(
                   'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80',
                 ),
                 fit: BoxFit.cover,
+                onError: (exception, stackTrace) {
+                  debugPrint('Background image load failed: $exception');
+                },
               ),
             ),
           ),
@@ -337,6 +340,9 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                         backgroundImage: NetworkImage(
                           "https://i.pravatar.cc/150?u=${widget.userId}",
                         ), // Host Avatar
+                        onBackgroundImageError: (exception, stackTrace) {
+                          debugPrint('Avatar image load failed: $exception');
+                        },
                       ),
                       SizedBox(width: w(8)),
                       Column(

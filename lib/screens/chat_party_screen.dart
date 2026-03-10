@@ -86,32 +86,18 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         isHost: false,
       );
 
-      // Check if I am the Host (room owner) and auto-sit if so
-      // We need a way to know if I am host.
-      // For now, let's assume if the room was just created by me, I should sit.
-      // But simpler: Check if seat 0 is empty, and if I am the creator (we need creator ID)
-      // Or just try to sit at 0 if it's empty and I just joined? No, that's risky for guests.
+      // Auto-publish if already seated (e.g. Host created room)
+      // We need to fetch seats to know if we are seated.
+      await _fetchSeats(background: true);
 
-      // Let's rely on _fetchSeats. If I am already seated (by backend on create), fine.
-      // If backend doesn't seat me on create, I need to do it here.
-      // Let's try to sit at index 0 if I am the "suspected" host (e.g. if I navigated here after create)
-      // Since we don't have isHost param here yet, let's add a safe check:
-      // If seat 0 is empty, and I am the one who created it...
-
-      // Better approach: When navigating from CreateRoomScreen, pass isHost: true
-      // But since we can't change navigation right now easily, let's do a quick API check or attempt.
-
-      // Attempt to sit at 0 if I am the first one joining and it's empty?
-      // Let's leave auto-sit for now unless we add isHost to widget.
-      // But user said "I don't sit automatically".
-
-      // Force sit at index 0 for testing if I am user ID 1 (or whatever logic)
-      // Or:
-      // await _apiService.updateSeat(widget.roomId!, 0, currentUser.id, 'sit');
-      // _fetchSeats();
-
-      // NOTE: Ideally, backend should seat the creator on room creation.
-      // If not, we can do it here if we know we are the creator.
+      // Check if seated after fetch
+      bool isSeated = _seats.any((s) => s.user?.id == currentUser.id);
+      if (isSeated) {
+        await zegoService.startPublishingStream(
+          currentUser.id.toString(),
+          video: false,
+        );
+      }
     }
   }
 
@@ -1108,6 +1094,10 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
             currentUser.id.toString(),
             video: false,
           );
+          // Ensure mic is unmuted locally
+          if (!zegoService.isMicOn) {
+            await zegoService.toggleMic();
+          }
         } else if (action == 'leave') {
           // Stop publishing
           await zegoService.stopPublishingStream();
