@@ -99,6 +99,11 @@ class ZegoService with ChangeNotifier {
         for (var stream in streamList) {
           // Play stream automatically (audio only by default unless view is set later)
           ZegoExpressEngine.instance.startPlayingStream(stream.streamID);
+          // Ensure we are playing audio for this stream
+          ZegoExpressEngine.instance.mutePlayStreamAudio(
+            stream.streamID,
+            false,
+          );
         }
       } else {
         for (var stream in streamList) {
@@ -150,6 +155,7 @@ class ZegoService with ChangeNotifier {
     bool video = true,
   }) async {
     await ZegoExpressEngine.instance.enableCamera(video);
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
     await ZegoExpressEngine.instance.muteMicrophone(false); // Ensure mic is on
     await ZegoExpressEngine.instance.muteSpeaker(false); // Ensure speaker is on
     await ZegoExpressEngine.instance.startPublishingStream(streamID);
@@ -178,7 +184,15 @@ class ZegoService with ChangeNotifier {
   }
 
   Future<void> toggleSpeaker() async {
-    await ZegoExpressEngine.instance.muteSpeaker(false);
+    // If speaker is muted, unmute it. If unmuted, mute it.
+    // For now let's just force unmute (enable speaker)
+    // await ZegoExpressEngine.instance.muteSpeaker(false);
+
+    // Proper toggle logic if needed, but for "ses gitmiyor" usually we want to ensure speaker is ON
+    // and also check if we are publishing audio.
+
+    // Ensure audio capture is enabled
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
   }
 
   Future<void> toggleCamera() async {
@@ -191,6 +205,7 @@ class ZegoService with ChangeNotifier {
   Future<void> startPreview(int viewID) async {
     ZegoCanvas canvas = ZegoCanvas(viewID, viewMode: ZegoViewMode.AspectFill);
     await ZegoExpressEngine.instance.startPreview(canvas: canvas);
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
   }
 
   Future<void> startPlayingStream(String streamID, int viewID) async {
@@ -199,5 +214,7 @@ class ZegoService with ChangeNotifier {
       streamID,
       canvas: canvas,
     );
+    // Ensure audio is unmuted for this stream
+    await ZegoExpressEngine.instance.mutePlayStreamAudio(streamID, false);
   }
 }

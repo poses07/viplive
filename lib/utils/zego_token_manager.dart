@@ -18,8 +18,9 @@ class ZegoTokenUtils {
     Map<String, dynamic> payloadData = {
       'room_id': '', // Empty means valid for all rooms
       'privilege': {
-        1: 1, // Login Room
-        2: 1, // Publish Stream
+        "1":
+            1, // Login Room - Keys must be string for json encode compatibility if causing issues
+        "2": 1, // Publish Stream
       },
       'stream_id_list': null,
     };
