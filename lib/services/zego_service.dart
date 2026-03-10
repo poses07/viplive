@@ -111,6 +111,8 @@ class ZegoService with ChangeNotifier {
     };
   }
 
+import '../utils/zego_token_manager.dart'; // Import token manager
+
   Future<void> loginRoom(
     String roomID,
     String userID,
@@ -122,9 +124,17 @@ class ZegoService with ChangeNotifier {
     ZegoUser user = ZegoUser(userID, userName);
     ZegoRoomConfig config = ZegoRoomConfig.defaultConfig();
     config.isUserStatusNotify = true;
+    
+    // Generate Token
+    String token = ZegoTokenUtils.generateToken(
+      appId: appID, 
+      serverSecret: "aef6a32ad60b7ed6142567bafc312cd2", // Should be in env or remote config
+      userId: userID
+    );
+    config.token = token;
 
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
-    debugPrint("Logging into room: $roomID as $userID");
+    debugPrint("Logging into room: $roomID as $userID with token");
 
     // Default settings
     isMicOn = true;
