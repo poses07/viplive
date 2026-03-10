@@ -32,7 +32,9 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   // App ID and App Sign removed (Zego Removed)
 
   final TextEditingController _chatController = TextEditingController();
-  final List<String> _messages = ['Canlı yayına hoş geldiniz!'];
+  final List<dynamic> _messages = ['Canlı yayına hoş geldiniz!'];
+  bool _isSending = false;
+  int _lastMessageId = 0;
 
   // Seats
   List<Seat> _seats = [];
@@ -52,6 +54,9 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   @override
   void initState() {
     super.initState();
+    // Listen to ZegoService updates
+    ZegoService().addListener(_onZegoUpdate);
+
     // Initialize Zego Service
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initZego();
@@ -60,6 +65,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     _fetchSeats();
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       _fetchSeats();
+      _fetchMessages();
     });
 
     // Simulate entrance effect
@@ -79,6 +85,10 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         });
       }
     });
+  }
+
+  void _onZegoUpdate() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initZego() async {
@@ -175,6 +185,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
   @override
   void dispose() {
+    ZegoService().removeListener(_onZegoUpdate);
     _pollingTimer?.cancel();
     _comboTimer?.cancel();
     _chatController.dispose();
@@ -195,6 +206,56 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
       }
     } catch (e) {
       debugPrint("Error fetching seats: $e");
+    }
+  }
+
+  Future<void> _fetchMessages() async {
+    try {
+      int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
+      if (roomId == 0) return;
+
+      final messages = await ApiService().getMessages(
+        roomId,
+        afterId: _lastMessageId,
+      );
+
+      if (messages.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _messages.addAll(messages);
+            _lastMessageId = messages.last['id'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching messages: $e");
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    if (_chatController.text.trim().isEmpty) return;
+
+    if (_isSending) return;
+    setState(() => _isSending = true);
+
+    try {
+      int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
+      int userId = int.tryParse(widget.userId) ?? 0;
+
+      bool success = await ApiService().sendMessage(
+        roomId,
+        userId,
+        _chatController.text.trim(),
+      );
+
+      if (success) {
+        _chatController.clear();
+        _fetchMessages(); // Refresh immediately
+      }
+    } catch (e) {
+      debugPrint("Error sending message: $e");
+    } finally {
+      if (mounted) setState(() => _isSending = false);
     }
   }
 
@@ -228,7 +289,8 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           Container(color: Colors.black.withValues(alpha: 0.6)),
 
           // 3. Zego Video Layer (Custom SDK Implementation)
-          if (widget.roomTag == 'live' && ZegoService().isCameraOn)
+          // Only show video layer when we are successfully logged into the room
+          if (widget.roomTag == 'live' && ZegoService().isInRoom)
             FutureBuilder<Widget?>(
               future: ZegoExpressEngine.instance.createCanvasView((viewID) {
                 if (widget.isHost) {
@@ -645,59 +707,192 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             ),
           ),
 
-          // Custom Bottom Bar (Gift Button)
+          // Chat Overlay
           Positioned(
-            bottom: h(20),
-            right: w(20),
-            child: FloatingActionButton(
-              backgroundColor: const Color(0xFFE65E8B),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  builder:
-                      (context) => GiftBottomSheet(
-                        onSendGift: (gift) async {
-                          // Send gift logic
-                          final apiService = ApiService();
-                          int roomId =
-                              int.tryParse(
-                                widget.liveID.replaceAll('room_', ''),
-                              ) ??
-                              0;
-                          int receiverId =
-                              int.tryParse(widget.userId) ?? 0; // Host ID
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [_buildChatList(w, h), _buildBottomInput(w, h)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                          if (roomId == 0 || receiverId == 0) return;
+  Widget _buildChatList(double Function(double) w, double Function(double) h) {
+    return Container(
+      height: h(200),
+      padding: EdgeInsets.symmetric(horizontal: w(16)),
+      child: ListView.builder(
+        reverse: true,
+        itemCount: _messages.length,
+        itemBuilder: (context, index) {
+          final msgIndex = _messages.length - 1 - index;
+          final msg = _messages[msgIndex];
+          String content = '';
+          String username = '';
+          String type = 'text';
 
-                          bool success = await apiService.sendGift(
-                            roomId: roomId,
-                            senderId:
-                                1, // Mock current user ID for now or get from provider
-                            receiverId: receiverId,
-                            giftId: gift['id'],
-                          );
+          if (msg is String) {
+            content = msg;
+            type = 'system';
+          } else if (msg is Map) {
+            content = msg['content'] ?? '';
+            username = msg['username'] ?? 'User';
+            type = msg['type'] ?? 'text';
+          }
 
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            if (success) {
-                              _addGiftMessage(
-                                "User sent ${gift['name']}",
-                                gift['name'],
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Hediye gönderilemedi'),
-                                ),
-                              );
-                            }
-                          }
-                        },
+          return Container(
+            margin: EdgeInsets.symmetric(vertical: h(4)),
+            padding: EdgeInsets.symmetric(horizontal: w(8), vertical: h(4)),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  if (username.isNotEmpty)
+                    TextSpan(
+                      text: '$username: ',
+                      style: TextStyle(
+                        color: Colors.yellowAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: w(12),
                       ),
-                );
-              },
-              child: const Icon(Icons.card_giftcard, color: Colors.white),
+                    ),
+                  TextSpan(
+                    text: content,
+                    style: TextStyle(
+                      color: type == 'gift' ? Colors.pinkAccent : Colors.white,
+                      fontSize: w(12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBottomInput(
+    double Function(double) w,
+    double Function(double) h,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: w(16), vertical: h(10)),
+      color: Colors.transparent,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: h(40),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: TextField(
+                controller: _chatController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Bir şeyler yaz...',
+                  hintStyle: TextStyle(color: Colors.white54, fontSize: w(14)),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: w(16),
+                    vertical: h(10),
+                  ),
+                ),
+                onSubmitted: (_) => _sendMessage(),
+              ),
+            ),
+          ),
+          SizedBox(width: w(10)),
+          GestureDetector(
+            onTap: _sendMessage,
+            child: Container(
+              padding: EdgeInsets.all(w(8)),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE65E8B),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  _isSending
+                      ? SizedBox(
+                        width: w(24),
+                        height: w(24),
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                      : Icon(Icons.send, color: Colors.white, size: w(24)),
+            ),
+          ),
+          SizedBox(width: w(10)),
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                builder:
+                    (context) => GiftBottomSheet(
+                      onSendGift: (gift) async {
+                        final apiService = ApiService();
+                        int roomId =
+                            int.tryParse(
+                              widget.liveID.replaceAll('room_', ''),
+                            ) ??
+                            0;
+
+                        if (roomId == 0) return;
+                        int hostId = 1;
+
+                        bool success = await apiService.sendGift(
+                          roomId: roomId,
+                          senderId: int.parse(widget.userId),
+                          receiverId: hostId,
+                          giftId: gift['id'],
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          if (success) {
+                            _sendMessage();
+                            _addGiftMessage(
+                              "sent ${gift['name']}",
+                              gift['name'],
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Hediye gönderilemedi'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.all(w(8)),
+              decoration: const BoxDecoration(
+                color: Colors.amber,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.card_giftcard,
+                color: Colors.white,
+                size: w(24),
+              ),
             ),
           ),
         ],
