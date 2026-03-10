@@ -26,9 +26,9 @@ class ZegoService with ChangeNotifier {
     if (_isEngineCreated) return;
 
     // Create Engine
-    // Use LiveStreaming for both video and audio support
+    // Use Default for maximum compatibility
     await ZegoExpressEngine.createEngineWithProfile(
-      ZegoEngineProfile(appID, ZegoScenario.LiveStreaming, appSign: appSign),
+      ZegoEngineProfile(appID, ZegoScenario.Default, appSign: appSign),
     );
 
     _isEngineCreated = true;
