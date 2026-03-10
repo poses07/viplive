@@ -26,13 +26,9 @@ class ZegoService with ChangeNotifier {
     if (_isEngineCreated) return;
 
     // Create Engine
-    // Use HighQualityChatroom for voice chat apps
+    // Use LiveStreaming for both video and audio support
     await ZegoExpressEngine.createEngineWithProfile(
-      ZegoEngineProfile(
-        appID,
-        ZegoScenario.HighQualityChatroom,
-        appSign: appSign,
-      ),
+      ZegoEngineProfile(appID, ZegoScenario.LiveStreaming, appSign: appSign),
     );
 
     _isEngineCreated = true;
@@ -131,6 +127,7 @@ class ZegoService with ChangeNotifier {
           "aef6a32ad60b7ed6142567bafc312cd2", // Should be in env or remote config
       userId: userID,
     );
+    debugPrint("Generated Token for $userID: $token");
     config.token = token;
 
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
