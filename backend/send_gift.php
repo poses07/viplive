@@ -30,22 +30,31 @@ try {
     // 2. Check Sender Balance
     $sender_sql = "SELECT username, diamonds FROM users WHERE id = $sender_id FOR UPDATE";
     $sender_result = $conn->query($sender_sql);
-    if ($sender_result->num_rows == 0) throw new Exception("Sender not found");
+    
+    if (!$sender_result || $sender_result->num_rows == 0) {
+        throw new Exception("Sender not found (ID: $sender_id)");
+    }
+    
     $sender_row = $sender_result->fetch_assoc();
     $sender_balance = $sender_row['diamonds'];
     $sender_name = $sender_row['username'];
 
     if ($sender_balance < $gift_price) {
-        throw new Exception("Insufficient balance");
+        throw new Exception("Insufficient balance. Needed: $gift_price, Has: $sender_balance");
     }
 
     // 3. Deduct from Sender
     $deduct_sql = "UPDATE users SET diamonds = diamonds - $gift_price WHERE id = $sender_id";
-    $conn->query($deduct_sql);
+    if (!$conn->query($deduct_sql)) {
+        throw new Exception("Failed to deduct balance");
+    }
 
-    // 4. Add to Receiver (Optional: Could be a different currency like 'beans')
-    $add_sql = "UPDATE users SET diamonds = diamonds + $gift_price WHERE id = $receiver_id";
-    $conn->query($add_sql);
+    // 4. Add 'Beans' to Receiver (NOT Diamonds)
+    // Streamers earn Beans, Viewers spend Diamonds
+    $add_sql = "UPDATE users SET beans = beans + $gift_price WHERE id = $receiver_id";
+    if (!$conn->query($add_sql) || $conn->affected_rows === 0) {
+        throw new Exception("Failed to add beans or receiver not found");
+    }
 
     // 5. Record Transaction
     $log_sql = "INSERT INTO transactions (sender_id, receiver_id, room_id, gift_id, amount) VALUES ($sender_id, $receiver_id, $room_id, $gift_id, $gift_price)";
