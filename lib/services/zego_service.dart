@@ -33,6 +33,12 @@ class ZegoService with ChangeNotifier {
 
     _isEngineCreated = true;
 
+    // Set Audio Configuration
+    ZegoAudioConfig audioConfig = ZegoAudioConfig.preset(
+      ZegoAudioConfigPreset.StandardQuality,
+    );
+    await ZegoExpressEngine.instance.setAudioConfig(audioConfig);
+
     // Enable sound level monitoring
     await ZegoExpressEngine.instance.startSoundLevelMonitor();
 
@@ -154,11 +160,23 @@ class ZegoService with ChangeNotifier {
     String streamID, {
     bool video = true,
   }) async {
-    await ZegoExpressEngine.instance.enableCamera(video);
+    // 1. Ensure audio device is enabled
     await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
-    await ZegoExpressEngine.instance.muteMicrophone(false); // Ensure mic is on
-    await ZegoExpressEngine.instance.muteSpeaker(false); // Ensure speaker is on
+
+    // 2. Ensure camera is enabled/disabled
+    await ZegoExpressEngine.instance.enableCamera(video);
+
+    // 3. Unmute Microphone (Software mute)
+    await ZegoExpressEngine.instance.muteMicrophone(false);
+
+    // 4. Set Audio Source (Default: Microphone)
+    await ZegoExpressEngine.instance.setAudioSource(
+      ZegoAudioSourceType.Microphone,
+    );
+
+    // 5. Start Publishing
     await ZegoExpressEngine.instance.startPublishingStream(streamID);
+
     isMicOn = true;
     isCameraOn = video;
     notifyListeners();
@@ -179,6 +197,7 @@ class ZegoService with ChangeNotifier {
   // Camera/Mic Controls
   Future<void> toggleMic() async {
     isMicOn = !isMicOn;
+    // Mute/Unmute microphone (software level)
     await ZegoExpressEngine.instance.muteMicrophone(!isMicOn);
     notifyListeners();
   }
