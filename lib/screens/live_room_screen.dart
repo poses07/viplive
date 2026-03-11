@@ -56,7 +56,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     super.initState();
     // Listen to ZegoService updates
     ZegoService().addListener(_onZegoUpdate);
-
+    
     // Listen to ZIM Messages
     ZegoService().onReceiveRoomMessage = (senderID, message) {
       if (mounted) {
@@ -76,6 +76,9 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       _fetchSeats();
     });
+    
+    // Fetch initial history
+    _fetchMessages();
 
     // Simulate entrance effect
     Future.delayed(const Duration(seconds: 3), () {
