@@ -63,7 +63,7 @@ try {
     // 6. Insert Chat Message
     // Use a special type 'gift' so the frontend can render it differently
     $msg_content = "sent $gift_name";
-    $msg_sql = "INSERT INTO messages (room_id, user_id, content, type) VALUES ($room_id, $sender_id, '$msg_content', 'gift')";
+    $msg_sql = "INSERT INTO chat_messages (room_id, user_id, content, type) VALUES ($room_id, $sender_id, '$msg_content', 'gift')";
     $conn->query($msg_sql);
 
     // Commit
