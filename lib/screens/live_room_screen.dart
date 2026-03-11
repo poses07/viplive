@@ -57,15 +57,24 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     // Listen to ZegoService updates
     ZegoService().addListener(_onZegoUpdate);
 
+    // Listen to ZIM Messages
+    ZegoService().onReceiveRoomMessage = (senderID, message) {
+      if (mounted) {
+        setState(() {
+          _messages.add({'username': senderID, 'message': message});
+        });
+      }
+    };
+
     // Initialize Zego Service
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initZego();
     });
 
     _fetchSeats();
+    // Only poll seats (status updates), not messages anymore
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       _fetchSeats();
-      _fetchMessages();
     });
 
     // Simulate entrance effect
@@ -325,19 +334,17 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     setState(() => _isSending = true);
 
     try {
+      String message = _chatController.text.trim();
       int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
-      int userId = int.tryParse(widget.userId) ?? 0;
 
-      bool success = await ApiService().sendMessage(
-        roomId,
-        userId,
-        _chatController.text.trim(),
-      );
+      // Send via ZIM
+      await ZegoService().sendRoomMessage(roomId.toString(), message);
 
-      if (success) {
+      // Add to local list immediately
+      setState(() {
+        _messages.add({'username': widget.userName, 'message': message});
         _chatController.clear();
-        _fetchMessages(); // Refresh immediately
-      }
+      });
     } catch (e) {
       debugPrint("Error sending message: $e");
     } finally {

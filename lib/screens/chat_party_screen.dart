@@ -55,16 +55,34 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     super.initState();
     if (widget.roomId != null) {
       _fetchSeats();
-      _fetchMessages();
+      _fetchMessages(); // Fetch history once
       _joinAudience();
 
-      // Start polling for seats and chat
+      // Listen to ZIM Messages
+      ZegoService().onReceiveRoomMessage = (senderID, message) {
+        if (mounted) {
+          setState(() {
+            _messages.add({'username': senderID, 'message': message});
+            // Scroll to bottom
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          });
+        }
+      };
+
+      // Start polling for seats only
       _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
         _fetchSeats(background: true);
       });
-      _chatPollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-        _fetchMessages(background: true);
-      });
+      // Removed chat polling timer
+
       _audiencePollingTimer = Timer.periodic(const Duration(seconds: 5), (
         timer,
       ) {
@@ -954,20 +972,27 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                                           ),
                                         ),
                                       );
-                                      // Send gift message to chat
+                                      // Send gift message to chat via ZIM
                                       try {
-                                        await apiService.sendMessage(
-                                          roomId,
-                                          currentUser.id,
-                                          "sent ${gift['name']}",
-                                          type: 'gift', // Add type argument
+                                        // Send generic text message for now as ZIM custom message
+                                        String giftMsg = "sent ${gift['name']}";
+                                        await ZegoService().sendRoomMessage(
+                                          roomId.toString(),
+                                          giftMsg,
                                         );
+
+                                        // Also add to local chat
+                                        setState(() {
+                                          _messages.add({
+                                            'username': currentUser.username,
+                                            'message': giftMsg,
+                                          });
+                                        });
                                       } catch (e) {
                                         debugPrint(
                                           'Error sending gift message: $e',
                                         );
                                       }
-                                      _fetchMessages(background: true);
                                     } else {
                                       ScaffoldMessenger.of(
                                         context,
