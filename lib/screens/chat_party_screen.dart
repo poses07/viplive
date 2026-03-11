@@ -60,10 +60,16 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
 
       // Listen to ZIM Messages
       ZegoService().onReceiveRoomMessage = (senderID, message) {
-        if (mounted) {
-          setState(() {
-            _messages.add({'username': senderID, 'message': message});
-            // Scroll to bottom
+        if (!mounted) return;
+        
+        if (message == "ROOM_ENDED") {
+            _onRoomEnded();
+            return;
+        }
+
+        setState(() {
+          _messages.add({'username': senderID, 'message': message});
+          // Scroll to bottom
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_scrollController.hasClients) {
                 _scrollController.animateTo(
@@ -823,10 +829,17 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              // Call API to end room
+                              // 1. Notify everyone via ZIM that room is closing
+                              await ZegoService().sendRoomMessage(
+                                widget.roomId!.toString(),
+                                "ROOM_ENDED", // Special command
+                              );
+
+                              // 2. Call API to end room in DB
                               if (widget.roomId != null) {
                                 await ApiService().endRoom(widget.roomId!);
                               }
+
                               if (!context.mounted) return;
                               Navigator.of(context).pop(true);
                             },

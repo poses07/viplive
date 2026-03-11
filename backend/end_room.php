@@ -36,6 +36,11 @@ if ($conn->query($sql) === TRUE) {
     // Also clear seats if it's a party room
     $clear_seats = "UPDATE room_seats SET user_id = NULL, is_locked = 0 WHERE room_id = $room_id";
     $conn->query($clear_seats);
+
+    // Send ZIM Message to notify room ended
+    // Ideally we should use a server-side ZIM SDK here, but for now 
+    // the client (Host) sends the end signal. 
+    // However, to be safe, let's mark it in DB so polling clients see it immediately.
     
     echo json_encode(["success" => true, "message" => "Room ended successfully"]);
 } else {
