@@ -41,8 +41,9 @@ if ($dob === '' || $dob === 'NULL') {
 }
 
 // SQL Check
+// Default 50000 diamonds for new users for testing
 $sql = "INSERT INTO users (username, password, gender, country, dob, level, diamonds, beans, created_at) 
-        VALUES ('$username', '$password', '$gender', '$country', $dob, 1, 10000, 0, NOW())";
+        VALUES ('$username', '$password', '$gender', '$country', $dob, 1, 50000, 0, NOW())";
 
 if ($conn->query($sql) === TRUE) {
     echo json_encode(["success" => true, "id" => $conn->insert_id]);
