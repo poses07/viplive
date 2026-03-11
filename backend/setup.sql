@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     dob DATE,
     avatar_url VARCHAR(255),
     level INT DEFAULT 1,
-    diamonds INT DEFAULT 0,
+    diamonds INT DEFAULT 10000,
     beans INT DEFAULT 0,
     bio TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

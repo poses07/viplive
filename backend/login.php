@@ -20,6 +20,14 @@ if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
     
     if (password_verify($password, $user['password'])) {
+        // Auto-fix balance for dev: If balance is low, top it up
+        if ($user['diamonds'] < 500) {
+            $new_balance = 10000;
+            $uid = $user['id'];
+            $conn->query("UPDATE users SET diamonds = $new_balance WHERE id = $uid");
+            $user['diamonds'] = $new_balance; // Update local variable for response
+        }
+
         // Remove password from response
         unset($user['password']);
         

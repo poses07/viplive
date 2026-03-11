@@ -20,7 +20,7 @@ if ($conn->connect_error) {
 // Set charset
 $conn->set_charset("utf8mb4");
 
-$sql = "SELECT id, name, icon_url, price, currency_type FROM gifts ORDER BY price ASC";
+$sql = "SELECT id, name, icon_url, price FROM gifts ORDER BY price ASC";
 $result = $conn->query($sql);
 
 $gifts = [];

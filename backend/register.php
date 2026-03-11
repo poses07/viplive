@@ -42,7 +42,7 @@ if ($dob === '' || $dob === 'NULL') {
 
 // SQL Check
 $sql = "INSERT INTO users (username, password, gender, country, dob, level, diamonds, beans, created_at) 
-        VALUES ('$username', '$password', '$gender', '$country', $dob, 1, 0, 0, NOW())";
+        VALUES ('$username', '$password', '$gender', '$country', $dob, 1, 10000, 0, NOW())";
 
 if ($conn->query($sql) === TRUE) {
     echo json_encode(["success" => true, "id" => $conn->insert_id]);
