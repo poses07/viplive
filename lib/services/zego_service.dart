@@ -65,7 +65,7 @@ class ZegoService with ChangeNotifier {
     ZIMAppConfig appConfig = ZIMAppConfig();
     appConfig.appID = appID;
     appConfig.appSign = appSign;
-    await ZIM.getInstance()!.create(appConfig);
+    ZIM.create(appConfig); // ZIM.create is static and returns ZIM? (not Future)
     debugPrint("ZIM Engine Created");
   }
 
@@ -168,7 +168,10 @@ class ZegoService with ChangeNotifier {
     ZIMUserInfo zimUser = ZIMUserInfo();
     zimUser.userID = userID;
     zimUser.userName = userName;
-    await ZIM.getInstance()!.login(zimUser, token);
+    await ZIM.getInstance()!.login(
+      zimUser,
+      token,
+    ); // Correct usage: login(ZIMUserInfo, String)
     debugPrint("Logged into ZIM as $userID");
 
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
