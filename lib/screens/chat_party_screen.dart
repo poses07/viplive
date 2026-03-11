@@ -806,15 +806,11 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                           TextButton(
                             onPressed: () async {
                               // Call API to end room
-                              final api = ApiService();
-                              final navigator = Navigator.of(context);
-
                               if (widget.roomId != null) {
-                                await api.endRoom(widget.roomId!);
+                                await ApiService().endRoom(widget.roomId!);
                               }
-                              if (navigator.mounted) {
-                                navigator.pop(true);
-                              }
+                              if (!context.mounted) return;
+                              Navigator.of(context).pop(true);
                             },
                             child: const Text(
                               "Bitir",
@@ -827,7 +823,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                   ) ??
                   false;
 
-              if (shouldEnd && context.mounted) {
+              if (shouldEnd && mounted) {
                 Navigator.pop(context);
               }
             },
