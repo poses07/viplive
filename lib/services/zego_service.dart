@@ -169,9 +169,9 @@ class ZegoService with ChangeNotifier {
     zimUser.userID = userID;
     zimUser.userName = userName;
     await ZIM.getInstance()!.login(
-      zimUser,
-      token,
-    ); // Correct usage: login(ZIMUserInfo, String)
+      userID,
+      ZIMLoginConfig()..token = token..userName = userName,
+    );
     debugPrint("Logged into ZIM as $userID");
 
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
