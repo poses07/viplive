@@ -189,8 +189,31 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     _pollingTimer?.cancel();
     _comboTimer?.cancel();
     _chatController.dispose();
+
+    // If host, clear seats when leaving
+    if (widget.isHost) {
+      _clearRoomSeats();
+    }
+
     ZegoService().logoutRoom(); // Logout when leaving screen
     super.dispose();
+  }
+
+  Future<void> _clearRoomSeats() async {
+    int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
+    if (roomId > 0) {
+      // Logic to clear seats or delete room could go here
+      // For now, at least host leaves their seat
+      int userId = int.tryParse(widget.userId) ?? 0;
+      if (userId > 0) {
+        await ApiService().updateSeat(
+          roomId: roomId,
+          seatIndex: 0,
+          userId: userId,
+          action: 'leave',
+        );
+      }
+    }
   }
 
   Future<void> _fetchSeats() async {
@@ -505,6 +528,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                           userId: userId,
                           action: 'sit',
                         );
+                        // Auto-publish audio when sitting
+                        await ZegoService().startPublishingStream(
+                          userId.toString(),
+                          video: false,
+                        );
                       } else if (seat.user?.id == userId) {
                         // My seat -> Leave
                         await ApiService().updateSeat(
@@ -513,6 +541,8 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                           userId: userId,
                           action: 'leave',
                         );
+                        // Stop publishing when leaving seat
+                        await ZegoService().stopPublishingStream();
                       }
                       _fetchSeats(); // Refresh immediately
                     },

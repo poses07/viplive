@@ -151,7 +151,7 @@ class ZegoService with ChangeNotifier {
     if (isHost) {
       // Start Preview and Publishing immediately for Host
       await ZegoExpressEngine.instance.startPreview();
-      await ZegoExpressEngine.instance.startPublishingStream("${roomID}_host");
+      await startPublishingStream("${roomID}_host");
     }
   }
 
