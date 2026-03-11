@@ -67,7 +67,8 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
       }
 
       setState(() {
-        _messages.add({'username': senderID, 'message': message});
+        // Use 'content' instead of 'message'
+        _messages.add({'username': senderID, 'content': message});
       });
     };
 
@@ -350,7 +351,8 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
       // Add to local list immediately
       setState(() {
-        _messages.add({'username': widget.userName, 'message': message});
+        // Use 'content' instead of 'message'
+        _messages.add({'username': widget.userName, 'content': message});
         _chatController.clear();
       });
     } catch (e) {

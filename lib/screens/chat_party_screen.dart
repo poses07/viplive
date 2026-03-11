@@ -72,7 +72,9 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         }
 
         setState(() {
-          _messages.add({'username': senderID, 'message': message});
+          // Use 'content' instead of 'message' to match the key used in build method
+          _messages.add({'username': senderID, 'content': message});
+
           // Scroll to bottom
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
@@ -264,7 +266,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchMessages({bool background = false}) async {
+  Future<void> _fetchMessages() async {
     if (widget.roomId == null) return;
     try {
       final messages = await ApiService().getMessages(
@@ -359,21 +361,24 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     }
 
     try {
-      final success = await ApiService().sendMessage(
-        widget.roomId!,
-        currentUser.id,
-        content,
-        type: customType,
-      );
+      if (currentUser != null) {
+        // Send via ZIM
+        await ZegoService().sendRoomMessage(widget.roomId.toString(), content);
 
-      if (success) {
-        _fetchMessages(background: true); // Fetch immediately
-      } else if (customContent == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send message')),
+        // Add to local list immediately
+        setState(() {
+          _messages.add({'username': currentUser.username, 'content': content});
+          _messageController.clear();
+        });
+
+        // Also save to DB for history
+        if (customContent == null) {
+          ApiService().sendMessage(
+            widget.roomId!,
+            currentUser.id,
+            content,
+            type: customType,
           );
-          _messageController.text = content; // Restore text
         }
       }
     } catch (e) {
