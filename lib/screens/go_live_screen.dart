@@ -152,13 +152,13 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
       if (result['success'] == true) {
         final roomId = result['room_id'];
 
+        // Release camera before navigating as Zego will take over
+        await _controller?.dispose();
+
+        if (!mounted) return;
+
         if (_selectedMode == 0) {
           // Live Mode
-          // Release camera before navigating as Zego will take over
-          await _controller?.dispose();
-
-          if (!mounted) return;
-
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -185,9 +185,13 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
                     roomTitle: _titleController.text,
                     roomId: roomId,
                     isHost: true,
+                    userId: hostId.toString(),
+                    userName: currentUser?.username ?? 'User',
                   ),
             ),
-          );
+          ).then((_) {
+            if (mounted) _initializeCamera();
+          });
         }
       } else {
         if (mounted) {

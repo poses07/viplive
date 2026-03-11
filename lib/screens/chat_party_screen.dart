@@ -13,12 +13,16 @@ class ChatPartyScreen extends StatefulWidget {
   final String roomTitle;
   final int? roomId;
   final bool isHost;
+  final String userId;
+  final String userName;
 
   const ChatPartyScreen({
     super.key,
     required this.roomTitle,
     this.roomId,
     this.isHost = false,
+    this.userId = '0',
+    this.userName = 'User',
   });
 
   @override
