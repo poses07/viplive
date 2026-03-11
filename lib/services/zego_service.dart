@@ -195,9 +195,22 @@ class ZegoService with ChangeNotifier {
         ..userName = userName,
     );
     debugPrint("Logged into ZIM as $userID");
-
+    // Login Room
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
     debugPrint("Logging into room: $roomID as $userID with token");
+
+    // Join ZIM Room as well
+    try {
+      await ZIM.getInstance()!.enterRoom(
+        ZIMRoomInfo()
+          ..roomID = roomID
+          ..roomName = roomID,
+        ZIMRoomAdvancedConfig(),
+      );
+      debugPrint("Entered ZIM Room: $roomID");
+    } catch (e) {
+      debugPrint("Failed to enter ZIM room: $e");
+    }
 
     // Default settings
     isMicOn = true;
@@ -224,11 +237,16 @@ class ZegoService with ChangeNotifier {
         roomID,
         ZIMConversationType.room,
         config,
-        ZIMMessageSendNotification(onMessageAttached: (message) {}),
+        ZIMMessageSendNotification(
+          onMessageAttached: (message) {
+            debugPrint("Message attached");
+          },
+        ),
       );
       debugPrint("Sent ZIM message to room $roomID: $message");
     } catch (e) {
       debugPrint("Failed to send ZIM message: $e");
+      // Fallback: If room message fails, maybe not joined ZIM room properly?
     }
   }
 
@@ -269,6 +287,10 @@ class ZegoService with ChangeNotifier {
     await stopPublishingStream();
     await ZegoExpressEngine.instance.stopPreview();
     await ZegoExpressEngine.instance.logoutRoom();
+    // Leave ZIM Room
+    if (currentRoomId != null) {
+      await ZIM.getInstance()!.leaveRoom(currentRoomId!);
+    }
     await ZIM.getInstance()!.logout(); // Logout ZIM
   }
 
