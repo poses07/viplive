@@ -361,25 +361,23 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     }
 
     try {
-      if (currentUser != null) {
-        // Send via ZIM
-        await ZegoService().sendRoomMessage(widget.roomId.toString(), content);
+      // Send via ZIM
+      await ZegoService().sendRoomMessage(widget.roomId.toString(), content);
 
-        // Add to local list immediately
-        setState(() {
-          _messages.add({'username': currentUser.username, 'content': content});
-          _messageController.clear();
-        });
+      // Add to local list immediately
+      setState(() {
+        _messages.add({'username': currentUser.username, 'content': content});
+        _messageController.clear();
+      });
 
-        // Also save to DB for history
-        if (customContent == null) {
-          ApiService().sendMessage(
-            widget.roomId!,
-            currentUser.id,
-            content,
-            type: customType,
-          );
-        }
+      // Also save to DB for history
+      if (customContent == null) {
+        ApiService().sendMessage(
+          widget.roomId!,
+          currentUser.id,
+          content,
+          type: customType,
+        );
       }
     } catch (e) {
       debugPrint('Error sending message: $e');
