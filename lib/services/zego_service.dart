@@ -69,7 +69,26 @@ class ZegoService with ChangeNotifier {
     debugPrint("ZIM Engine Created");
   }
 
+  // ZIM Event Handler
+  Function(String senderID, String message)? onReceiveRoomMessage;
+
   void _registerEventHandlers() {
+    // ZIM Event Handler
+    ZIMEventHandler.onReceiveRoomMessage = (
+      ZIM zim,
+      List<ZIMMessage> messageList,
+      String fromRoomID,
+    ) {
+      for (var message in messageList) {
+        if (message is ZIMTextMessage) {
+          debugPrint(
+            "Received ZIM message from ${message.senderUserID}: ${message.message}",
+          );
+          onReceiveRoomMessage?.call(message.senderUserID, message.message);
+        }
+      }
+    };
+
     // Sound Level Handler
     ZegoExpressEngine.onCapturedSoundLevelUpdate = (soundLevel) {
       // Local user sound level
@@ -170,7 +189,9 @@ class ZegoService with ChangeNotifier {
     zimUser.userName = userName;
     await ZIM.getInstance()!.login(
       userID,
-      ZIMLoginConfig()..token = token..userName = userName,
+      ZIMLoginConfig()
+        ..token = token
+        ..userName = userName,
     );
     debugPrint("Logged into ZIM as $userID");
 
@@ -185,6 +206,28 @@ class ZegoService with ChangeNotifier {
       // Start Preview and Publishing immediately for Host
       await ZegoExpressEngine.instance.startPreview();
       await startPublishingStream("${roomID}_host");
+    }
+  }
+
+  // ZIM Message Sending
+  Future<void> sendRoomMessage(String roomID, String message) async {
+    if (message.isEmpty) return;
+
+    ZIMTextMessage textMessage = ZIMTextMessage(message: message);
+    ZIMMessageSendConfig config = ZIMMessageSendConfig();
+    config.priority = ZIMMessagePriority.low;
+
+    try {
+      await ZIM.getInstance()!.sendMessage(
+        textMessage,
+        roomID,
+        ZIMConversationType.room,
+        config,
+        ZIMMessageSendNotification(onMessageAttached: (message) {}),
+      );
+      debugPrint("Sent ZIM message to room $roomID: $message");
+    } catch (e) {
+      debugPrint("Failed to send ZIM message: $e");
     }
   }
 
