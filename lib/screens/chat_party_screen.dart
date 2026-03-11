@@ -88,7 +88,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         widget.roomId.toString(),
         currentUser.id.toString(),
         currentUser.username,
-        isHost: widget.isHost,
+        isHost: false, // Force false to avoid auto-video publishing
       );
 
       // Auto-publish if already seated (e.g. Host created room)

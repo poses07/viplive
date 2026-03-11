@@ -46,9 +46,9 @@ if ($conn->query($sql) === TRUE) {
     // Initialize 10 seats (0-9)
     $seat_values = [];
     for ($i = 0; $i < 10; $i++) {
-        // Seat index, user_id (NULL initially), is_locked (FALSE)
-        // Note: host can take seat 0 later, or we can auto-assign host to seat 0
-        $seat_values[] = "($room_id, $i, NULL, 0)";
+        // Auto-assign Host to Seat 0
+        $uid = ($i == 0) ? $host_id : "NULL";
+        $seat_values[] = "($room_id, $i, $uid, 0)";
     }
     
     // Batch insert seats
