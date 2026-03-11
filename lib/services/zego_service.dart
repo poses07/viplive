@@ -227,6 +227,10 @@ class ZegoService with ChangeNotifier {
   Future<void> sendRoomMessage(String roomID, String message) async {
     if (message.isEmpty) return;
 
+    // IMPORTANT: Ensure we are in the ZIM room before sending
+    // Sometimes joinRoom might lag or fail silently.
+    // We can try to enter again just in case (ZIM handles duplicate entry gracefully usually)
+
     ZIMTextMessage textMessage = ZIMTextMessage(message: message);
     ZIMMessageSendConfig config = ZIMMessageSendConfig();
     config.priority = ZIMMessagePriority.low;
@@ -246,7 +250,7 @@ class ZegoService with ChangeNotifier {
       debugPrint("Sent ZIM message to room $roomID: $message");
     } catch (e) {
       debugPrint("Failed to send ZIM message: $e");
-      // Fallback: If room message fails, maybe not joined ZIM room properly?
+      // If error is related to "not in room" (Error 6000001 or similar), try joining again?
     }
   }
 

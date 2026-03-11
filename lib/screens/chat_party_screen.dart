@@ -121,6 +121,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
       // Check if seated after fetch
       bool isSeated = _seats.any((s) => s.user?.id == currentUser.id);
       if (isSeated) {
+        // If seated, unmute mic and start publishing audio only
         await zegoService.startPublishingStream(
           currentUser.id.toString(),
           video: false,
