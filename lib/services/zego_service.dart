@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
+import 'package:zego_zim/zego_zim.dart'; // Import ZIM
 import '../utils/zego_token_manager.dart'; // Import token manager
 
 class ZegoService with ChangeNotifier {
@@ -53,8 +54,19 @@ class ZegoService with ChangeNotifier {
     // Enable sound level monitoring
     await ZegoExpressEngine.instance.startSoundLevelMonitor();
 
+    // Initialize ZIM (Instant Messaging)
+    await _initZIM();
+
     _registerEventHandlers();
     debugPrint("Zego Engine Created");
+  }
+
+  Future<void> _initZIM() async {
+    ZIMAppConfig appConfig = ZIMAppConfig();
+    appConfig.appID = appID;
+    appConfig.appSign = appSign;
+    await ZIM.getInstance()!.create(appConfig);
+    debugPrint("ZIM Engine Created");
   }
 
   void _registerEventHandlers() {
@@ -152,6 +164,13 @@ class ZegoService with ChangeNotifier {
     debugPrint("Generated Token for $userID: $token");
     config.token = token;
 
+    // Login ZIM
+    ZIMUserInfo zimUser = ZIMUserInfo();
+    zimUser.userID = userID;
+    zimUser.userName = userName;
+    await ZIM.getInstance()!.login(zimUser, token);
+    debugPrint("Logged into ZIM as $userID");
+
     await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
     debugPrint("Logging into room: $roomID as $userID with token");
 
@@ -203,6 +222,7 @@ class ZegoService with ChangeNotifier {
     await stopPublishingStream();
     await ZegoExpressEngine.instance.stopPreview();
     await ZegoExpressEngine.instance.logoutRoom();
+    await ZIM.getInstance()!.logout(); // Logout ZIM
   }
 
   // Camera/Mic Controls

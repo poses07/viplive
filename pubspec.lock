@@ -613,6 +613,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.23.0"
+  zego_zim:
+    dependency: "direct main"
+    description:
+      name: zego_zim
+      sha256: c7e4b41f2834b3953fe1a3b6447d6cd2f5add60584b488d8af8bfb864bdd133a
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.27.0"
 sdks:
   dart: ">=3.7.2 <4.0.0"
   flutter: ">=3.29.0"
