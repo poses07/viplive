@@ -74,10 +74,10 @@ class ZegoService with ChangeNotifier {
 
   void _registerEventHandlers() {
     // ZIM Event Handler
-    ZIMEventHandler.onReceiveRoomMessage = (
+    ZIMEventHandler.onRoomMessageReceived = (
       ZIM zim,
       List<ZIMMessage> messageList,
-      String fromRoomID,
+      ZIMMessageReceivedInfo info,
     ) {
       for (var message in messageList) {
         if (message is ZIMTextMessage) {
