@@ -806,11 +806,14 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                           TextButton(
                             onPressed: () async {
                               // Call API to end room
+                              final api = ApiService();
+                              final navigator = Navigator.of(context);
+
                               if (widget.roomId != null) {
-                                await ApiService().endRoom(widget.roomId!);
+                                await api.endRoom(widget.roomId!);
                               }
-                              if (mounted) {
-                                Navigator.of(context).pop(true);
+                              if (navigator.mounted) {
+                                navigator.pop(true);
                               }
                             },
                             child: const Text(
