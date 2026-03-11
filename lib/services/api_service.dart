@@ -5,6 +5,13 @@ import '../models/gift.dart';
 import '../models/seat.dart';
 import '../models/room.dart';
 
+class RoomEndedException implements Exception {
+  final String message;
+  RoomEndedException([this.message = 'Room has ended']);
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
   // For physical device, use your machine's IP address (e.g. 192.168.1.x)
@@ -69,6 +76,8 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Seat.fromJson(json)).toList();
+      } else if (response.statusCode == 410) {
+        throw RoomEndedException();
       } else {
         throw Exception('Failed to load seats');
       }

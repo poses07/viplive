@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -24,35 +25,42 @@ class _HomeScreenState extends State<HomeScreen>
   final ApiService _apiService = ApiService();
   List<Room> _rooms = [];
   bool _isLoading = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchRooms();
+
+    // Auto-refresh every 5 seconds for dynamic updates
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _fetchRooms(silent: true);
+    });
   }
 
-  Future<void> _fetchRooms() async {
+  Future<void> _fetchRooms({bool silent = false}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (!silent) setState(() => _isLoading = true);
     try {
       // For now, fetch all rooms. Later we can filter by tab index
       final rooms = await _apiService.getRooms();
       if (mounted) {
         setState(() {
           _rooms = rooms;
-          _isLoading = false;
+          if (!silent) _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('Error loading rooms: $e');
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !silent) setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 

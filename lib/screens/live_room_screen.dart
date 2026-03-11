@@ -216,6 +216,65 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     }
   }
 
+  bool _isRoomEnded = false;
+
+  void _onRoomEnded() {
+    if (_isRoomEnded || !mounted) return;
+    setState(() => _isRoomEnded = true);
+
+    _pollingTimer?.cancel();
+    ZegoService().logoutRoom();
+
+    // Show Ended Overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => PopScope(
+            canPop: false,
+            child: Scaffold(
+              backgroundColor: Colors.black.withValues(alpha: 0.9),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.live_tv_outlined,
+                      size: 80,
+                      color: Colors.white54,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Yayın Sona Erdi",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Yayıncı odayı kapattı.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 30),
+                    const CircularProgressIndicator(color: Color(0xFFE65E8B)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+
+    // Navigate back after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close Dialog
+        Navigator.of(context).pop(); // Close Screen
+      }
+    });
+  }
+
   Future<void> _fetchSeats() async {
     try {
       int roomId = int.tryParse(widget.liveID.replaceAll('room_', '')) ?? 0;
@@ -228,7 +287,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error fetching seats: $e");
+      if (e is RoomEndedException) {
+        _onRoomEnded();
+      } else {
+        debugPrint("Error fetching seats: $e");
+      }
     }
   }
 

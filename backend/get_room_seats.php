@@ -37,6 +37,23 @@ if ($room_id == 0) {
     die(json_encode(["error" => "Missing room_id"]));
 }
 
+// Check if room is live
+$check_sql = "SELECT is_active FROM rooms WHERE id = $room_id";
+$check_result = $conn->query($check_sql);
+
+if ($check_result && $check_result->num_rows > 0) {
+    $room = $check_result->fetch_assoc();
+    if ($room['is_active'] == 0) {
+        http_response_code(410); // Gone
+        echo json_encode(["error" => "Room ended"]);
+        exit();
+    }
+} else {
+    http_response_code(404);
+    echo json_encode(["error" => "Room not found"]);
+    exit();
+}
+
 // Fetch seats with user details
 $sql = "SELECT rs.seat_index, rs.is_locked, u.id as user_id, u.username, u.avatar_url 
         FROM room_seats rs

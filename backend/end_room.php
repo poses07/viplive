@@ -30,7 +30,7 @@ if (!isset($data['room_id'])) {
 $room_id = (int)$data['room_id'];
 
 // Update room status to offline
-$sql = "UPDATE rooms SET is_live = 0 WHERE id = $room_id";
+$sql = "UPDATE rooms SET is_active = 0 WHERE id = $room_id";
 
 if ($conn->query($sql) === TRUE) {
     // Also clear seats if it's a party room

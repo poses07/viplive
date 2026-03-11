@@ -101,6 +101,64 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     }
   }
 
+  bool _isRoomEnded = false;
+
+  void _onRoomEnded() {
+    if (_isRoomEnded || !mounted) return;
+    setState(() => _isRoomEnded = true);
+
+    _pollingTimer?.cancel();
+    _chatPollingTimer?.cancel();
+    _audiencePollingTimer?.cancel();
+    
+    // Stop Zego
+    ZegoService().logoutRoom();
+
+    // Show Ended Overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black.withValues(alpha: 0.9),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.mic_off, size: 80, color: Colors.white54),
+                const SizedBox(height: 20),
+                const Text(
+                  "Parti Sona Erdi",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Host odayı kapattı.",
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 30),
+                const CircularProgressIndicator(color: Color(0xFFE65E8B)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Navigate back after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close Dialog
+        Navigator.of(context).pop(); // Close Screen
+      }
+    });
+  }
+
   Future<void> _fetchSeats({bool background = false}) async {
     if (!background) setState(() => _isLoadingSeats = true);
     try {
@@ -110,31 +168,14 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
           _seats = seats;
           if (!background) _isLoadingSeats = false;
         });
-
-        // Audio Logic
-        // final zegoService = Provider.of<ZegoService>(context, listen: false);
-        // final userProvider = Provider.of<UserProvider>(context, listen: false);
-        // final currentUser = userProvider.currentUser;
-        //
-        // if (currentUser != null) {
-        //   bool amISeated = seats.any((s) => s.user?.id == currentUser.id);
-        //
-        //   if (!amISeated) {
-        //     // If I am not in any seat, I should be a listener (stop publishing)
-        //     zegoService.stopPublishingStream();
-        //   } else {
-        //     // If I am seated, I should be able to publish.
-        //     // We rely on the Mic Toggle button for actual mute/unmute.
-        //     // But we need to ensure the stream is published initially if not already.
-        //     // For now, let's assume joinRoom started publishing and we just toggle mute.
-        //     // If we were a listener and now seated, we might need to start publishing.
-        //     // zegoService.startPublishingStream(currentUser.id.toString());
-        //   }
-        // }
       }
     } catch (e) {
-      debugPrint('Error loading seats: $e');
-      if (mounted && !background) setState(() => _isLoadingSeats = false);
+      if (e is RoomEndedException) {
+        _onRoomEnded();
+      } else {
+        debugPrint('Error loading seats: $e');
+        if (mounted && !background) setState(() => _isLoadingSeats = false);
+      }
     }
   }
 
