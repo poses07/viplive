@@ -39,6 +39,9 @@ class ZegoService with ChangeNotifier {
     );
     await ZegoExpressEngine.instance.setAudioConfig(audioConfig);
 
+    // Force Audio to Speaker (Important for Live Streaming)
+    await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
+
     // Enable sound level monitoring
     await ZegoExpressEngine.instance.startSoundLevelMonitor();
 

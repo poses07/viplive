@@ -511,6 +511,15 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                 itemCount: _seats.length, // Should be 10 seats from backend
                 itemBuilder: (context, index) {
                   final seat = _seats[index];
+                  // Check audio level
+                  bool isTalking = false;
+                  if (seat.user != null) {
+                    final level =
+                        ZegoService().soundLevels[seat.user!.id.toString()] ??
+                        0.0;
+                    isTalking = level > 5.0;
+                  }
+
                   return GestureDetector(
                     onTap: () async {
                       // Seat Tap Logic (Sit/Leave)
@@ -556,10 +565,13 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color:
-                                  seat.user != null
-                                      ? const Color(0xFFE65E8B)
-                                      : Colors.white24,
-                              width: 1,
+                                  isTalking
+                                      ? Colors
+                                          .greenAccent // Talking
+                                      : (seat.user != null
+                                          ? const Color(0xFFE65E8B)
+                                          : Colors.white24),
+                              width: isTalking ? 2 : 1,
                             ),
                           ),
                           child:
