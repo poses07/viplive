@@ -39,6 +39,14 @@ class ZegoService with ChangeNotifier {
     );
     await ZegoExpressEngine.instance.setAudioConfig(audioConfig);
 
+    // Advanced Audio Processing (Noise Suppression & Echo Cancellation)
+    // Enable ANS (Acoustic Noise Suppression)
+    await ZegoExpressEngine.instance.enableANS(true);
+    // Enable AEC (Acoustic Echo Cancellation)
+    await ZegoExpressEngine.instance.enableAEC(true);
+    // Enable AGC (Automatic Gain Control)
+    await ZegoExpressEngine.instance.enableAGC(true);
+
     // Force Audio to Speaker (Important for Live Streaming)
     await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
 
