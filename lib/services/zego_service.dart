@@ -78,6 +78,7 @@ class ZegoService with ChangeNotifier {
       ZIM zim,
       List<ZIMMessage> messageList,
       ZIMMessageReceivedInfo info,
+      String fromRoomID,
     ) {
       for (var message in messageList) {
         if (message is ZIMTextMessage) {
