@@ -11,10 +11,15 @@ import 'profile_screen.dart';
 
 class ChatPartyScreen extends StatefulWidget {
   final String roomTitle;
-  final int?
-  roomId; // Made optional for backward compatibility, but should be passed
+  final int? roomId;
+  final bool isHost;
 
-  const ChatPartyScreen({super.key, required this.roomTitle, this.roomId});
+  const ChatPartyScreen({
+    super.key,
+    required this.roomTitle,
+    this.roomId,
+    this.isHost = false,
+  });
 
   @override
   State<ChatPartyScreen> createState() => _ChatPartyScreenState();
@@ -83,7 +88,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         widget.roomId.toString(),
         currentUser.id.toString(),
         currentUser.username,
-        isHost: false,
+        isHost: widget.isHost,
       );
 
       // Auto-publish if already seated (e.g. Host created room)
@@ -110,7 +115,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     _pollingTimer?.cancel();
     _chatPollingTimer?.cancel();
     _audiencePollingTimer?.cancel();
-    
+
     // Stop Zego
     ZegoService().logoutRoom();
 
@@ -118,36 +123,37 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PopScope(
-        canPop: false,
-        child: Scaffold(
-          backgroundColor: Colors.black.withValues(alpha: 0.9),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.mic_off, size: 80, color: Colors.white54),
-                const SizedBox(height: 20),
-                const Text(
-                  "Parti Sona Erdi",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+      builder:
+          (context) => PopScope(
+            canPop: false,
+            child: Scaffold(
+              backgroundColor: Colors.black.withValues(alpha: 0.9),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.mic_off, size: 80, color: Colors.white54),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Parti Sona Erdi",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Host odayı kapattı.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 30),
+                    const CircularProgressIndicator(color: Color(0xFFE65E8B)),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Host odayı kapattı.",
-                  style: TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 30),
-                const CircularProgressIndicator(color: Color(0xFFE65E8B)),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
     );
 
     // Navigate back after 3 seconds
@@ -768,7 +774,60 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
 
           // Close Button
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () async {
+              if (!widget.isHost) {
+                Navigator.pop(context);
+                return;
+              }
+
+              // Show confirmation dialog for Host
+              bool shouldEnd =
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        title: const Text(
+                          "Partiyi Sonlandır",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        content: const Text(
+                          "Partiyi bitirmek ve odayı kapatmak istediğinize emin misiniz?",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text(
+                              "İptal",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              // Call API to end room
+                              if (widget.roomId != null) {
+                                await ApiService().endRoom(widget.roomId!);
+                              }
+                              if (context.mounted) {
+                                Navigator.of(context).pop(true);
+                              }
+                            },
+                            child: const Text(
+                              "Bitir",
+                              style: TextStyle(color: Color(0xFFE65E8B)),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ) ??
+                  false;
+
+              if (shouldEnd && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
             child: Container(
               padding: EdgeInsets.all(w(6)),
               decoration: BoxDecoration(

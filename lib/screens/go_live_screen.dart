@@ -184,6 +184,7 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
                   (context) => ChatPartyScreen(
                     roomTitle: _titleController.text,
                     roomId: roomId,
+                    isHost: true,
                   ),
             ),
           );
