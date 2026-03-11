@@ -809,7 +809,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
                               if (widget.roomId != null) {
                                 await ApiService().endRoom(widget.roomId!);
                               }
-                              if (context.mounted) {
+                              if (mounted) {
                                 Navigator.of(context).pop(true);
                               }
                             },
