@@ -9,6 +9,8 @@ import '../models/seat.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 class ChatPartyScreen extends StatefulWidget {
   final String roomTitle;
   final int? roomId;
@@ -57,6 +59,7 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
   @override
   void initState() {
     super.initState();
+    _requestPermissions(); // Request permissions early
     if (widget.roomId != null) {
       _fetchSeats();
       _fetchMessages(); // Fetch history once
@@ -193,6 +196,14 @@ class _ChatPartyScreenState extends State<ChatPartyScreen> {
         Navigator.of(context).pop(); // Close Screen
       }
     });
+  }
+
+  Future<void> _requestPermissions() async {
+    await [
+      Permission.camera,
+      Permission.microphone,
+      Permission.bluetoothConnect,
+    ].request();
   }
 
   Future<void> _fetchSeats({bool background = false}) async {

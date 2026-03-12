@@ -6,6 +6,8 @@ import '../services/zego_service.dart';
 import '../widgets/gift_bottom_sheet.dart';
 import '../models/seat.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 class LiveRoomScreen extends StatefulWidget {
   final String roomTitle;
   final String roomTag;
@@ -110,6 +112,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   }
 
   Future<void> _initZego() async {
+    // Request permissions for audio playback routing (Bluetooth)
+    if (await Permission.bluetoothConnect.status.isDenied) {
+      await Permission.bluetoothConnect.request();
+    }
+
     final zegoService = ZegoService();
     // Login to room
     await zegoService.loginRoom(

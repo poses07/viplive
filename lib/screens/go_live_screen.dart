@@ -43,12 +43,18 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    // Request permissions
+    // Request all necessary permissions
     Map<Permission, PermissionStatus> statuses =
-        await [Permission.camera, Permission.microphone].request();
+        await [
+          Permission.camera,
+          Permission.microphone,
+          Permission.bluetoothConnect, // For Android 12+ audio devices
+        ].request();
 
-    if (statuses[Permission.camera]!.isGranted &&
-        statuses[Permission.microphone]!.isGranted) {
+    bool cameraGranted = statuses[Permission.camera]?.isGranted ?? false;
+    bool micGranted = statuses[Permission.microphone]?.isGranted ?? false;
+
+    if (cameraGranted && micGranted) {
       try {
         _cameras = await availableCameras();
         if (_cameras != null && _cameras!.isNotEmpty) {
