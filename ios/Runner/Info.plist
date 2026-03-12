@@ -49,5 +49,12 @@
 	<string>Canlı yayın için kameranıza erişim izni gerekiyor.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Canlı yayın ve sesli sohbet için mikrofona erişim izni gerekiyor.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Profil fotoğrafı yüklemek için galeriye erişim izni gerekiyor.</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
 </dict>
 </plist>
