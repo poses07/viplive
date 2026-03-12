@@ -7,9 +7,13 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <application
         android:label="viplive"
         android:name="${applicationName}"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <activity
