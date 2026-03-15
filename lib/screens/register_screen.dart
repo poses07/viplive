@@ -75,8 +75,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     double w(double width) => width * (screenSize.width / designWidth);
     double h(double height) => height * (screenSize.height / designHeight);
 
+    // Get keyboard height
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: Colors.black, // Fallback
+      resizeToAvoidBottomInset: false, // Prevent background resizing
       body: Stack(
         children: [
           // Background Image
@@ -103,12 +107,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
 
           // Content
-          SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: w(36),
-              ), // Based on Figma X=36
-              child: Column(
+          Positioned.fill(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: w(36),
+                ), // Based on Figma X=36
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h(65)), // Top spacing
@@ -277,6 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ],
       ),

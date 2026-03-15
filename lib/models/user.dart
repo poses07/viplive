@@ -6,6 +6,7 @@ class User {
   final int diamonds;
   final int beans;
   final bool isHost;
+  final String gender; // 'male', 'female', or 'unknown'
 
   User({
     required this.id,
@@ -15,6 +16,7 @@ class User {
     required this.diamonds,
     this.beans = 0,
     required this.isHost,
+    this.gender = 'unknown',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class User {
       diamonds: int.parse(json['diamonds'].toString()),
       beans: json['beans'] != null ? int.parse(json['beans'].toString()) : 0,
       isHost: (json['is_host'] == '1' || json['is_host'] == 1 || json['is_host'] == true),
+      gender: json['gender'] as String? ?? 'unknown',
     );
   }
 }

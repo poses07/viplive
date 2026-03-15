@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/api_service.dart';
-import 'dm_screen.dart';
 import 'settings_screen.dart';
 import 'wallet_screen.dart';
 
@@ -35,404 +34,382 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentUserId: currentUser?.id,
       );
 
-      if (mounted && profileData.isNotEmpty) {
+      if (mounted) {
         setState(() {
           _userProfile = profileData;
           _isLoading = false;
         });
-      } else {
-        if (mounted) setState(() => _isLoading = false); // Handle not found
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _toggleFollow() async {
-    final currentUser =
-        Provider.of<UserProvider>(context, listen: false).currentUser;
-    if (currentUser == null) return;
-
-    try {
-      final result = await _apiService.followUser(
-        followerId: currentUser.id,
-        followingId: widget.userId,
-      );
-
-      if (mounted && result['success'] == true) {
-        setState(() {
-          _userProfile!['is_following'] = result['is_following'];
-          // Optimistically update counts
-          int followers =
-              int.tryParse(_userProfile!['followers_count'].toString()) ?? 0;
-          if (result['is_following']) {
-            followers++;
-          } else {
-            followers--;
-          }
-          _userProfile!['followers_count'] = followers;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double designWidth = 414.0;
-    final double designHeight = 896.0;
-
-    double w(double width) => width * (screenSize.width / designWidth);
-    double h(double height) => height * (screenSize.height / designHeight);
-
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFE65E8B)),
+        ),
+      );
     }
 
     if (_userProfile == null) {
-      return const Scaffold(body: Center(child: Text("User not found")));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: Text("User not found")),
+      );
     }
 
     final currentUser = Provider.of<UserProvider>(context).currentUser;
     final bool isMe = currentUser?.id == widget.userId;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header (Cover + Avatar + Actions)
-            Stack(
-              clipBehavior: Clip.none,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFDEBF3), // Light pinkish top
+              Color(0xFFF4F6F9), // Light greyish bottom
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                // Cover Image
-                Container(
-                  height: h(200),
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        'https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&w=800&q=80',
-                      ),
-                      fit: BoxFit.cover,
-                    ),
+                // 1. Profile Card
+                _buildProfileCard(isMe),
+                const SizedBox(height: 16),
+
+                // 2. Quick Actions Card
+                _buildQuickActionsCard(),
+                const SizedBox(height: 16),
+
+                // 3. List Group 1 (VIP, Bags, etc.)
+                _buildMenuCard([
+                  _MenuItem(
+                    icon: Icons.emoji_events,
+                    color: Colors.orange,
+                    label: "VIP",
                   ),
-                ),
-                // Back Button
-                Positioned(
-                  top: h(40),
-                  left: w(16),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.3),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                  _MenuItem(
+                    icon: Icons.local_mall,
+                    color: Colors.brown,
+                    label: "My Bags",
                   ),
-                ),
-                // Settings Button (Only if Me)
-                if (isMe)
-                  Positioned(
-                    top: h(40),
-                    right: w(110),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withValues(alpha: 0.3),
-                      child: IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.white),
-                        onPressed:
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
-                              ),
-                            ),
-                      ),
-                    ),
+                  _MenuItem(
+                    icon: Icons.verified,
+                    color: Colors.amber,
+                    label: "Badge",
                   ),
-                // Wallet Button (Only if Me)
-                if (isMe)
-                  Positioned(
-                    top: h(40),
-                    right: w(16),
-                    child: GestureDetector(
+                  _MenuItem(
+                    icon: Icons.card_giftcard,
+                    color: Colors.pink,
+                    label: "Gift",
+                  ),
+                ]),
+                const SizedBox(height: 16),
+
+                // 4. List Group 2 (Family, CP)
+                _buildMenuCard([
+                  _MenuItem(
+                    icon: Icons.group,
+                    color: Colors.cyan,
+                    label: "Family",
+                  ),
+                  _MenuItem(
+                    icon: Icons.favorite,
+                    color: Colors.red,
+                    label: "CP",
+                  ),
+                ]),
+                const SizedBox(height: 16),
+
+                // 5. List Group 3 (Centers, Settings)
+                _buildMenuCard([
+                  _MenuItem(
+                    icon: Icons.mic,
+                    color: Colors.purple,
+                    label: "Host Center",
+                  ),
+                  _MenuItem(
+                    icon: Icons.business,
+                    color: Colors.green,
+                    label: "Agency Center",
+                  ),
+                  _MenuItem(
+                    icon: Icons.chat_bubble,
+                    color: Colors.blue,
+                    label: "BD Center",
+                  ),
+                  _MenuItem(
+                    icon: Icons.person_add,
+                    color: Colors.indigo,
+                    label: "Invite Friends",
+                  ),
+                  if (isMe)
+                    _MenuItem(
+                      icon: Icons.settings,
+                      color: Colors.grey,
+                      label: "Settings",
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const WalletScreen(),
+                            builder: (context) => const SettingsScreen(),
                           ),
                         );
                       },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: w(12),
-                          vertical: h(6),
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.account_balance_wallet,
-                              color: Colors.white,
-                              size: w(16),
-                            ),
-                            SizedBox(width: w(4)),
-                            Text(
-                              "Wallet",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: w(12),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
-                  ),
-                // Avatar
-                Positioned(
-                  bottom: -h(40),
-                  left: w(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: w(40),
-                      backgroundImage: NetworkImage(
-                        _userProfile!['avatar_url'],
-                      ),
-                    ),
-                  ),
-                ),
+                ]),
+                const SizedBox(height: 20),
               ],
             ),
-
-            SizedBox(height: h(50)), // Space for avatar overlap
-            // User Info
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: w(20)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _userProfile!['username'],
-                            style: TextStyle(
-                              fontSize: w(24),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: w(6),
-                                  vertical: h(2),
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Colors.purple, Colors.blue],
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'Lv.${_userProfile!['level']}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: w(10),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: w(8)),
-                              Text(
-                                "ID: ${_userProfile!['id']}",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: w(12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      // Follow/Edit Button
-                      if (!isMe)
-                        Row(
-                          children: [
-                            ElevatedButton(
-                              onPressed: _toggleFollow,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    _userProfile!['is_following']
-                                        ? Colors.grey
-                                        : const Color(0xFFE65E8B),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: w(24),
-                                ),
-                              ),
-                              child: Text(
-                                _userProfile!['is_following']
-                                    ? "Takip Ediliyor"
-                                    : "Takip Et",
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ),
-                            // Chat Button
-                            Padding(
-                              padding: EdgeInsets.only(left: w(8)),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // Navigate to DM
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => DMScreen(
-                                            otherUserId: widget.userId,
-                                            otherUsername:
-                                                _userProfile!['username'],
-                                            otherAvatar:
-                                                _userProfile!['avatar_url'],
-                                          ),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  shape: const CircleBorder(),
-                                  padding: EdgeInsets.all(w(10)),
-                                ),
-                                child: const Icon(
-                                  Icons.chat_bubble_outline,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-
-                  SizedBox(height: h(16)),
-                  Text(
-                    _userProfile!['bio'],
-                    style: TextStyle(fontSize: w(14), color: Colors.black87),
-                  ),
-
-                  SizedBox(height: h(24)),
-
-                  // Stats Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem(
-                        "Takipçi",
-                        _userProfile!['followers_count'].toString(),
-                        w,
-                      ),
-                      _buildStatItem(
-                        "Takip",
-                        _userProfile!['following_count'].toString(),
-                        w,
-                      ),
-                      _buildStatItem("Beğeni", "5.2K", w),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const WalletScreen(),
-                            ),
-                          );
-                        },
-                        child: _buildStatItem("Cüzdan", "Bakiye", w),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: h(24)),
-
-            // Posts Grid
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: w(20)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Posts",
-                    style: TextStyle(
-                      fontSize: w(18),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: h(12)),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: w(4),
-                      mainAxisSpacing: w(4),
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: (_userProfile!['posts'] as List).length,
-                    itemBuilder: (context, index) {
-                      final post = (_userProfile!['posts'] as List)[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: NetworkImage(post['image_url']),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: h(40)),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, Function(double) w) {
+  Widget _buildProfileCard(bool isMe) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            "Profile",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              // Avatar
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundImage: NetworkImage(
+                    _userProfile!['avatar_url'] ?? 'https://i.pravatar.cc/150',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _userProfile!['username'] ?? "Unknown",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "ID: ${_userProfile!['id']}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 30),
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatItem("0", "Visitors"),
+              _buildDivider(),
+              _buildStatItem("0", "Following"),
+              _buildDivider(),
+              _buildStatItem("0", "Fans"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(height: 20, width: 1, color: Colors.grey[300]);
+  }
+
+  Widget _buildStatItem(String count, String label) {
     return Column(
       children: [
         Text(
-          value,
-          style: TextStyle(fontSize: w(18), fontWeight: FontWeight.bold),
+          count,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
-        Text(label, style: TextStyle(fontSize: w(12), color: Colors.grey)),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
+
+  Widget _buildQuickActionsCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildQuickAction(Icons.store, "Store", Colors.orangeAccent),
+          _buildQuickAction(Icons.star, "Aristocracy", Colors.amberAccent),
+          _buildQuickAction(Icons.diamond, "Level", Colors.blueAccent),
+          _buildQuickAction(
+            Icons.account_balance_wallet,
+            "Wallet",
+            Colors.orange,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WalletScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(
+    IconData icon,
+    String label,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(List<_MenuItem> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children:
+            items.map((item) {
+              return InkWell(
+                onTap: item.onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(item.icon, color: item.color, size: 24),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+      ),
+    );
+  }
+}
+
+class _MenuItem {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback? onTap;
+
+  _MenuItem({
+    required this.icon,
+    required this.color,
+    required this.label,
+    this.onTap,
+  });
 }

@@ -15,7 +15,34 @@ $seat_index = intval($data['seat_index']);
 $action = $data['action']; // 'sit', 'leave', 'lock', 'unlock'
 $user_id = isset($data['user_id']) ? intval($data['user_id']) : 0;
 
-$sql = "";
+// Fetch current seats JSON
+$fetch_sql = "SELECT seats FROM rooms WHERE id = $room_id";
+$result = $conn->query($fetch_sql);
+
+if (!$result || $result->num_rows == 0) {
+    echo json_encode(["error" => "Room not found"]);
+    exit();
+}
+
+$row = $result->fetch_assoc();
+$seats_json = $row['seats'];
+$seats = ($seats_json) ? json_decode($seats_json, true) : [];
+
+// If seats array is empty/null, initialize it (migration fallback)
+if (empty($seats)) {
+    for ($i = 0; $i < 10; $i++) {
+        $seats[] = ["index" => $i, "user_id" => null, "is_locked" => false];
+    }
+}
+
+// Find target seat
+$target_seat = &$seats[$seat_index]; // Reference for direct modification
+
+// Validate index
+if (!isset($target_seat)) {
+    echo json_encode(["error" => "Invalid seat index"]);
+    exit();
+}
 
 switch ($action) {
     case 'sit':
@@ -23,42 +50,43 @@ switch ($action) {
             echo json_encode(["error" => "User ID required for sitting"]);
             exit();
         }
-        // Check if user is already sitting in this room
-        $check_sql = "SELECT id FROM room_seats WHERE room_id = $room_id AND user_id = $user_id";
-        $check_result = $conn->query($check_sql);
-        if ($check_result->num_rows > 0) {
-            echo json_encode(["error" => "User already in a seat"]);
-            exit();
+        
+        // Check if user is already sitting anywhere in this room
+        foreach ($seats as $s) {
+            if ($s['user_id'] == $user_id) {
+                echo json_encode(["error" => "User already in a seat (Index: " . $s['index'] . ")"]);
+                exit();
+            }
         }
         
         // Check if seat is empty and unlocked
-        $seat_check = "SELECT is_locked, user_id FROM room_seats WHERE room_id = $room_id AND seat_index = $seat_index";
-        $seat_result = $conn->query($seat_check);
-        if ($seat_result->num_rows > 0) {
-            $seat = $seat_result->fetch_assoc();
-            if ($seat['is_locked']) {
-                echo json_encode(["error" => "Seat is locked"]);
-                exit();
-            }
-            if ($seat['user_id'] != null) {
-                echo json_encode(["error" => "Seat is occupied"]);
-                exit();
-            }
+        if ($target_seat['is_locked']) {
+            echo json_encode(["error" => "Seat is locked"]);
+            exit();
+        }
+        if ($target_seat['user_id'] != null) {
+            echo json_encode(["error" => "Seat is occupied"]);
+            exit();
         }
 
-        $sql = "UPDATE room_seats SET user_id = $user_id WHERE room_id = $room_id AND seat_index = $seat_index";
+        // Sit
+        $target_seat['user_id'] = $user_id;
         break;
 
     case 'leave':
-        $sql = "UPDATE room_seats SET user_id = NULL WHERE room_id = $room_id AND seat_index = $seat_index";
+        // Only allow leaving if it's the user or maybe host (logic for host not added here yet)
+        // For now, assume validation is done by frontend or user_id match
+        // Ideally we should check if requesting user is the one sitting
+        
+        $target_seat['user_id'] = null;
         break;
 
     case 'lock':
-        $sql = "UPDATE room_seats SET is_locked = TRUE WHERE room_id = $room_id AND seat_index = $seat_index";
+        $target_seat['is_locked'] = true;
         break;
 
     case 'unlock':
-        $sql = "UPDATE room_seats SET is_locked = FALSE WHERE room_id = $room_id AND seat_index = $seat_index";
+        $target_seat['is_locked'] = false;
         break;
 
     default:
@@ -66,7 +94,11 @@ switch ($action) {
         exit();
 }
 
-if ($conn->query($sql) === TRUE) {
+// Save back to DB
+$new_seats_json = json_encode($seats);
+$update_sql = "UPDATE rooms SET seats = '$new_seats_json' WHERE id = $room_id";
+
+if ($conn->query($update_sql) === TRUE) {
     echo json_encode(["success" => true, "message" => "Seat updated successfully"]);
 } else {
     echo json_encode(["error" => "Error updating seat: " . $conn->error]);

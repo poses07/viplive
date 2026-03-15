@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'go_live_screen.dart';
-import 'live_room_screen.dart';
 import 'chat_party_screen.dart';
 import 'profile_screen.dart';
+import 'leaderboard_screen.dart';
 import 'search_screen.dart';
+import 'inbox_screen.dart';
 import '../services/api_service.dart';
 import '../models/room.dart';
 import '../providers/user_provider.dart';
+import '../widgets/popular_categories_widget.dart';
+import 'explore_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -75,98 +78,21 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       backgroundColor: Colors.white, // As per Figma fills: Secondary/White/100%
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar (Search + Tabs + Actions)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: w(16), vertical: h(10)),
-              child: Row(
-                children: [
-                  // Search Icon
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
-                    },
-                    child: SvgPicture.asset(
-                      'assets/images/icon_search.svg',
-                      width: w(24),
-                      height: w(24),
-                      colorFilter: const ColorFilter.mode(
-                        Colors.black,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: w(20)),
-
-                  // Tabs (Popular, Freshers, Party)
-                  Expanded(
-                    child: TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      indicatorColor: Colors.transparent, // No underline
-                      dividerColor: Colors.transparent,
-                      labelPadding: EdgeInsets.symmetric(horizontal: w(12)),
-                      tabs: [
-                        _buildTab('Popüler', 0),
-                        _buildTab('Yeni', 1),
-                        _buildTab('Parti', 2),
-                      ],
-                      onTap: (index) {
-                        setState(() {}); // Rebuild to update tab styles
-                        _fetchRooms(); // Refresh rooms on tab change (mock logic for now)
-                      },
-                    ),
-                  ),
-
-                  // Profile Icon (Replaces notification/chat placeholder)
-                  GestureDetector(
-                    onTap: () {
-                      // Navigate to Profile or Inbox if needed, or keep as visual balance
-                      // For now, let's keep it as a profile shortcut or remove it if unwanted
-                      // Based on the image, there's a user icon on the right.
-                      final currentUser =
-                          Provider.of<UserProvider>(
-                            context,
-                            listen: false,
-                          ).currentUser;
-                      if (currentUser != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    ProfileScreen(userId: currentUser.id),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Icon(Icons.person, color: Colors.black),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tab Content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildUserGrid(w, h), // Popular
-                  _buildUserGrid(w, h), // Freshers (Reusing grid for now)
-                  _buildUserGrid(w, h), // Party (Reusing grid for now)
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      body:
+          _bottomNavIndex == 1
+              ? const ExploreScreen()
+              : _bottomNavIndex == 3
+              ? const InboxScreen()
+              : _bottomNavIndex == 4
+              ? Consumer<UserProvider>(
+                builder: (context, provider, child) {
+                  if (provider.currentUser != null) {
+                    return ProfileScreen(userId: provider.currentUser!.id);
+                  }
+                  return const Center(child: Text("Please login"));
+                },
+              )
+              : _buildHomeContent(w, h),
 
       // Bottom Navigation
       bottomNavigationBar: Container(
@@ -189,11 +115,82 @@ class _HomeScreenState extends State<HomeScreen>
 
             // Center "Live" Button
             GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                // Check if user has a room
+                final userProvider = Provider.of<UserProvider>(
                   context,
-                  MaterialPageRoute(builder: (context) => const GoLiveScreen()),
+                  listen: false,
                 );
+                final currentUser = userProvider.currentUser;
+
+                if (currentUser != null) {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (context) => const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFE65E8B),
+                          ),
+                        ),
+                  );
+
+                  try {
+                    final result = await _apiService.getMyRoom(currentUser.id);
+                    if (context.mounted) Navigator.pop(context); // Hide loading
+
+                    if (result['success'] == true && result['room'] != null) {
+                      // Room exists, go directly to ChatPartyScreen
+                      final room = result['room'];
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ChatPartyScreen(
+                                  roomTitle: room['title'],
+                                  roomId: int.parse(room['id'].toString()),
+                                  isHost: true,
+                                  userId: currentUser.id.toString(),
+                                  userName: currentUser.username,
+                                ),
+                          ),
+                        ).then((_) => _fetchRooms());
+                      }
+                    } else {
+                      // No room, go to GoLiveScreen to create one
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GoLiveScreen(),
+                          ),
+                        ).then((_) => _fetchRooms());
+                      }
+                    }
+                  } catch (e) {
+                    if (context.mounted) Navigator.pop(context); // Hide loading
+                    debugPrint("Error checking room: $e");
+                    // Fallback to GoLiveScreen on error
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GoLiveScreen(),
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  // Not logged in, go to GoLiveScreen (which handles login mock)
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const GoLiveScreen(),
+                    ),
+                  );
+                }
               },
               child: Container(
                 width: w(60),
@@ -237,12 +234,9 @@ class _HomeScreenState extends State<HomeScreen>
                       listen: false,
                     ).currentUser;
                 if (user != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileScreen(userId: user.id),
-                    ),
-                  );
+                  setState(() => _bottomNavIndex = 4);
+                } else {
+                  // Prompt login
                 }
               },
               child: Column(
@@ -252,18 +246,116 @@ class _HomeScreenState extends State<HomeScreen>
                     'assets/images/nav_profile.svg',
                     width: w(24),
                     height: w(24),
-                    colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                    colorFilter: ColorFilter.mode(
+                      _bottomNavIndex == 4
+                          ? const Color(0xFFE65E8B)
+                          : Colors.grey,
+                      BlendMode.srcIn,
+                    ),
                   ),
                   SizedBox(height: 4),
                   Text(
                     'Profile',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color:
+                          _bottomNavIndex == 4
+                              ? const Color(0xFFE65E8B)
+                              : Colors.grey,
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHomeContent(Function(double) w, Function(double) h) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Top Bar (Search + Tabs + Actions)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: w(16), vertical: h(10)),
+            child: Row(
+              children: [
+                // Search Icon
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SearchScreen(),
+                      ),
+                    );
+                  },
+                  child: SvgPicture.asset(
+                    'assets/images/icon_search.svg',
+                    width: w(24),
+                    height: w(24),
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+                SizedBox(width: w(20)),
+
+                // Tabs (Popular, Freshers, Party)
+                Expanded(
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    indicatorColor: Colors.transparent, // No underline
+                    dividerColor: Colors.transparent,
+                    labelPadding: EdgeInsets.symmetric(horizontal: w(12)),
+                    tabs: [
+                      _buildTab('Yeni', 0),
+                      _buildTab('Popüler', 1),
+                      _buildTab('Parti', 2),
+                    ],
+                    onTap: (index) {
+                      setState(() {}); // Rebuild to update tab styles
+                      _fetchRooms(); // Refresh rooms on tab change (mock logic for now)
+                    },
+                  ),
+                ),
+
+                // Rank Icon
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LeaderboardScreen(),
+                      ),
+                    );
+                  },
+                  child: Image.asset(
+                    'assets/images/icon_trophy.png',
+                    width: w(24),
+                    height: w(24),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Tab Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUserGrid(w, h, showFreshHeader: true), // Yeni (Fresher)
+                _buildUserGrid(w, h), // Popüler
+                _buildPartyList(w, h), // Parti (New List View)
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -319,7 +411,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildUserGrid(Function(double) w, Function(double) h) {
+  Widget _buildUserGrid(
+    Function(double) w,
+    Function(double) h, {
+    bool showFreshHeader = false,
+  }) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -346,6 +442,13 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         children: [
           SizedBox(height: h(10)),
+
+          // Fresh Header Widget (Only for 'Yeni' tab)
+          if (showFreshHeader) ...[
+            const PopularCategoriesWidget(),
+            SizedBox(height: h(10)),
+          ],
+
           // Banner
           Container(
             width: double.infinity,
@@ -361,6 +464,28 @@ class _HomeScreenState extends State<HomeScreen>
           SizedBox(height: h(20)),
 
           // Grid of Rooms
+          if (!showFreshHeader) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: h(10)),
+              child: Row(
+                children: [
+                  Icon(Icons.public, color: Colors.black54, size: w(20)),
+                  SizedBox(width: w(8)),
+                  const Text(
+                    "Global",
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.filter_list, color: Colors.black54, size: w(20)),
+                ],
+              ),
+            ),
+          ],
+
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -381,38 +506,172 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildPartyList(Function(double) w, Function(double) h) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_rooms.isEmpty) {
+      return const Center(child: Text("No party rooms yet"));
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: w(16), vertical: h(10)),
+      itemCount: _rooms.length,
+      itemBuilder: (context, index) {
+        final room = _rooms[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) =>
+                        ChatPartyScreen(roomTitle: room.title, roomId: room.id),
+              ),
+            ).then((_) => _fetchRooms());
+          },
+          child: Container(
+            margin: EdgeInsets.only(bottom: h(10)),
+            padding: EdgeInsets.all(w(10)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5), // Light background
+              borderRadius: BorderRadius.circular(12),
+              // Optional Gradient background for card like design
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white,
+                  Colors.pink.shade50.withValues(alpha: 0.5),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Avatar (Square/Rounded)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    room.hostAvatar ??
+                        'https://i.pravatar.cc/150?img=${room.id % 70}',
+                    width: w(60),
+                    height: w(60),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                SizedBox(width: w(12)),
+
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Room Name
+                      Text(
+                        room.title.isNotEmpty ? room.title : "Room Name",
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: w(14),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: h(4)),
+
+                      // Tags Row
+                      Row(
+                        children: [
+                          // Flag
+                          Image.network(
+                            "https://flagcdn.com/w40/ae.png",
+                            width: 16,
+                            height: 12,
+                            fit: BoxFit.cover,
+                          ),
+                          SizedBox(width: w(6)),
+
+                          // Tag 1 (e.g., Friends/CP)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange, // Dynamic color later
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.mic,
+                                  size: 10,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: w(2)),
+                                const Text(
+                                  "Party", // Dynamic tag text
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: h(4)),
+
+                      // Username
+                      Text(
+                        room.hostName.isNotEmpty ? room.hostName : "User",
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: w(12),
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildRoomCard(Room room, Function(double) w, Function(double) h) {
+    // Determine tags based on some logic (mock for now, or based on room data)
+    // For now, let's just mock it based on ID to show variety
+    String? badgeText;
+    Color? badgeColor;
+    // IconData? badgeIcon; // Removed icon usage
+
+    if (room.id % 2 == 0) {
+      badgeText = "New";
+      badgeColor = const Color(0xFFFF0000); // Red
+    } else {
+      badgeText = "New";
+      badgeColor = const Color(0xFF0000FF); // Blue
+    }
+
     return GestureDetector(
       onTap: () {
-        final currentUser =
-            Provider.of<UserProvider>(context, listen: false).currentUser;
-
-        // Navigate to Room based on type
-        if (room.roomType == 'live') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => LiveRoomScreen(
-                    roomTitle: room.title,
-                    roomTag: room.roomType,
-                    isHost: false, // Viewer
-                    userId: currentUser?.id.toString() ?? 'guest',
-                    userName: currentUser?.username ?? 'Guest',
-                    liveID: 'room_${room.id}',
-                  ),
-            ),
-          ).then((_) => _fetchRooms()); // Refresh on return
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) =>
-                      ChatPartyScreen(roomTitle: room.title, roomId: room.id),
-            ),
-          ).then((_) => _fetchRooms()); // Refresh on return
-        }
+        // Navigate to ChatPartyScreen for ALL rooms
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    ChatPartyScreen(roomTitle: room.title, roomId: room.id),
+          ),
+        ).then((_) => _fetchRooms()); // Refresh on return
       },
       child: Container(
         decoration: BoxDecoration(
@@ -450,76 +709,75 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
 
-            // Top Tags (Yalla Style)
+            // Badge (New) - Top Right
             Positioned(
               top: 8,
-              left: 8,
+              right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.pink.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(4),
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      room.roomType == 'party' ? Icons.mic : Icons.videocam,
-                      color: Colors.white,
-                      size: 10,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      room.roomType.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
 
-            // User Info
+            // Top Tags (Party/Live) - Top Left (Removed or Kept based on design preference)
+            // Design shows Country flag and name at bottom, no top-left tag in the screenshot provided.
+            // But let's keep it minimal if needed. The screenshot shows Badge at Top Right.
+
+            // User Info (Bottom)
             Positioned(
               left: 10,
               bottom: 10,
               right: 10,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
+                  // Flag (Mock)
+                  Container(
+                    width: 16,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      image: const DecorationImage(
+                        image: NetworkImage(
+                          "https://flagcdn.com/w40/ae.png",
+                        ), // UAE Flag as in design
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: w(4)),
+                  Expanded(
+                    child: Text(
+                      room.hostName.isNotEmpty ? room.hostName : "User",
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: w(12),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  // Viewer Count
                   Text(
-                    room.title.isNotEmpty ? room.title : room.hostName,
+                    '${(room.id * 100) + 50 / 1000}K', // Mock 1.6K format
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: w(14),
+                      fontSize: w(12),
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: h(4)),
-                  Row(
-                    children: [
-                      // Flag (Mock)
-                      Container(
-                        width: 12,
-                        height: 8,
-                        color: Colors.green, // Mock flag
-                      ),
-                      SizedBox(width: w(4)),
-                      Icon(Icons.person, color: Colors.white70, size: w(12)),
-                      SizedBox(width: w(2)),
-                      Text(
-                        '${(room.id * 100) + 50}', // Mock viewer count
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: w(10),
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

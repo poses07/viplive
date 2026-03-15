@@ -21,6 +21,7 @@ class Seat {
         level: 0, // Not returned by this specific API, optional
         diamonds: 0,
         isHost: false, // Can be inferred if seatIndex == 0
+        gender: json['gender'] ?? 'unknown', // Add gender support
       );
     }
 

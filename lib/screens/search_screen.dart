@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/room.dart';
 import 'profile_screen.dart';
-import 'live_room_screen.dart';
 import 'chat_party_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class _SearchScreenState extends State<SearchScreen>
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = false;
   List<dynamic> _userResults = [];
   List<Room> _roomResults = [];
@@ -44,10 +43,10 @@ class _SearchScreenState extends State<SearchScreen>
       if (mounted) {
         setState(() {
           _userResults = results['users'] ?? [];
-          
+
           final roomList = results['rooms'] as List? ?? [];
           _roomResults = roomList.map((json) => Room.fromJson(json)).toList();
-          
+
           _isLoading = false;
         });
       }
@@ -90,28 +89,27 @@ class _SearchScreenState extends State<SearchScreen>
           labelColor: const Color(0xFFE65E8B),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFFE65E8B),
-          tabs: const [
-            Tab(text: 'Users'),
-            Tab(text: 'Rooms'),
-          ],
+          tabs: const [Tab(text: 'Users'), Tab(text: 'Rooms')],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                // Users Tab
-                _userResults.isEmpty
-                    ? const Center(child: Text("No users found"))
-                    : ListView.builder(
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                controller: _tabController,
+                children: [
+                  // Users Tab
+                  _userResults.isEmpty
+                      ? const Center(child: Text("No users found"))
+                      : ListView.builder(
                         itemCount: _userResults.length,
                         itemBuilder: (context, index) {
                           final user = _userResults[index];
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundImage: NetworkImage(
-                                user['avatar_url'] ?? 'https://i.pravatar.cc/150',
+                                user['avatar_url'] ??
+                                    'https://i.pravatar.cc/150',
                               ),
                             ),
                             title: Text(user['username']),
@@ -121,9 +119,12 @@ class _SearchScreenState extends State<SearchScreen>
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ProfileScreen(
-                                      userId: int.parse(user['id'].toString()),
-                                    ),
+                                    builder:
+                                        (context) => ProfileScreen(
+                                          userId: int.parse(
+                                            user['id'].toString(),
+                                          ),
+                                        ),
                                   ),
                                 );
                               },
@@ -134,16 +135,19 @@ class _SearchScreenState extends State<SearchScreen>
                                 ),
                                 minimumSize: const Size(60, 30),
                               ),
-                              child: const Text("View", style: TextStyle(fontSize: 12)),
+                              child: const Text(
+                                "View",
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
                           );
                         },
                       ),
 
-                // Rooms Tab
-                _roomResults.isEmpty
-                    ? const Center(child: Text("No rooms found"))
-                    : ListView.builder(
+                  // Rooms Tab
+                  _roomResults.isEmpty
+                      ? const Center(child: Text("No rooms found"))
+                      : ListView.builder(
                         itemCount: _roomResults.length,
                         itemBuilder: (context, index) {
                           final room = _roomResults[index];
@@ -158,36 +162,30 @@ class _SearchScreenState extends State<SearchScreen>
                               ),
                             ),
                             title: Text(room.title),
-                            subtitle: Text("${room.hostName} • ${room.roomType.toUpperCase()}"),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            subtitle: Text(
+                              "${room.hostName} • ${room.roomType.toUpperCase()}",
+                            ),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                            ),
                             onTap: () {
-                              if (room.roomType == 'live') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => LiveRoomScreen(
-                                      roomTitle: room.title,
-                                      roomTag: room.tag,
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ChatPartyScreen(
-                                      roomTitle: room.title,
-                                      roomId: room.id,
-                                    ),
-                                  ),
-                                );
-                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ChatPartyScreen(
+                                        roomTitle: room.title,
+                                        roomId: room.id,
+                                      ),
+                                ),
+                              );
                             },
                           );
                         },
                       ),
-              ],
-            ),
+                ],
+              ),
     );
   }
 }

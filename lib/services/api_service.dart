@@ -195,12 +195,38 @@ class ApiService {
     }
   }
 
+  // Follow User
+  Future<Map<String, dynamic>> followUser({
+    required int followerId,
+    required int followingId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/follow_user.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'follower_id': followerId,
+          'following_id': followingId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'success': false, 'message': 'Server error'};
+    } catch (e) {
+      debugPrint('Error following user: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // Send Gift
-  Future<bool> sendGift({
+  Future<Map<String, dynamic>> sendGift({
     required int roomId,
     required int senderId,
     required int receiverId,
     required int giftId,
+    int quantity = 1,
   }) async {
     try {
       final response = await http.post(
@@ -211,17 +237,39 @@ class ApiService {
           'sender_id': senderId,
           'receiver_id': receiverId,
           'gift_id': giftId,
+          'quantity': quantity,
         }),
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['success'] == true;
+        return json.decode(response.body);
       }
-      return false;
+      return {'success': false, 'error': 'Server error'};
     } catch (e) {
       debugPrint('Error sending gift: $e');
-      return false;
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // Get Room Details
+  Future<Map<String, dynamic>> getRoomDetails(int roomId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/get_room_details.php?room_id=$roomId'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] != null) {
+          throw Exception(data['error']);
+        }
+        return data;
+      } else {
+        throw Exception('Failed to load room details');
+      }
+    } catch (e) {
+      debugPrint('Error getting room details: $e');
+      return {};
     }
   }
 
@@ -244,6 +292,23 @@ class ApiService {
     } catch (e) {
       debugPrint('Error getting rooms: $e');
       return [];
+    }
+  }
+
+  // Get my room
+  Future<Map<String, dynamic>> getMyRoom(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/get_my_room.php?user_id=$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'success': false, 'error': 'Server error'};
+    } catch (e) {
+      debugPrint('Error getting my room: $e');
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -324,31 +389,6 @@ class ApiService {
     } catch (e) {
       debugPrint('Error ending room: $e');
       return false;
-    }
-  }
-
-  // Follow User
-  Future<Map<String, dynamic>> followUser({
-    required int followerId,
-    required int followingId,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/follow_user.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'follower_id': followerId,
-          'following_id': followingId,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to follow user');
-      }
-    } catch (e) {
-      throw Exception('Error following user: $e');
     }
   }
 
@@ -509,6 +549,26 @@ class ApiService {
     } catch (e) {
       debugPrint('Error getting conversations: $e');
       return [];
+    }
+  }
+
+  // Update Room Layout
+  Future<bool> updateRoomLayout(int roomId, int seatCount) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/update_room_layout.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'room_id': roomId, 'seat_count': seatCount}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error updating room layout: $e');
+      return false;
     }
   }
 }

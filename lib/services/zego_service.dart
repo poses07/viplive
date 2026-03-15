@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
 import 'package:zego_zim/zego_zim.dart'; // Import ZIM
@@ -18,6 +20,7 @@ class ZegoService with ChangeNotifier {
   bool isCameraOn = true;
   bool isInRoom = false;
   String? currentRoomId;
+  String? currentUserId;
 
   // Stream tracking
   List<ZegoUser> remoteUsers = [];
@@ -69,8 +72,9 @@ class ZegoService with ChangeNotifier {
     debugPrint("ZIM Engine Created");
   }
 
-  // ZIM Event Handler
+  // ZIM Event Handlers
   Function(String senderID, String message)? onReceiveRoomMessage;
+  Function(String senderID, String command)? onReceiveCommand;
 
   void _registerEventHandlers() {
     // ZIM Event Handler
@@ -86,6 +90,12 @@ class ZegoService with ChangeNotifier {
             "Received ZIM message from ${message.senderUserID}: ${message.message}",
           );
           onReceiveRoomMessage?.call(message.senderUserID, message.message);
+        } else if (message is ZIMCommandMessage) {
+          String command = String.fromCharCodes(message.message);
+          debugPrint(
+            "Received ZIM command from ${message.senderUserID}: $command",
+          );
+          onReceiveCommand?.call(message.senderUserID, command);
         }
       }
     };
@@ -93,8 +103,10 @@ class ZegoService with ChangeNotifier {
     // Sound Level Handler
     ZegoExpressEngine.onCapturedSoundLevelUpdate = (soundLevel) {
       // Local user sound level
-      // We can use this to show wave animation for self
-      // notifyListeners(); // Only notify if we track self level
+      if (currentUserId != null) {
+        soundLevels[currentUserId!] = soundLevel;
+        notifyListeners();
+      }
     };
 
     ZegoExpressEngine.onRemoteSoundLevelUpdate = (soundLevels) {
@@ -215,6 +227,7 @@ class ZegoService with ChangeNotifier {
     // Default settings
     isMicOn = true;
     isCameraOn = isHost; // Host starts with camera, audience without
+    currentUserId = userID;
 
     if (isHost) {
       // Start Preview and Publishing immediately for Host
@@ -225,33 +238,40 @@ class ZegoService with ChangeNotifier {
 
   // ZIM Message Sending
   Future<void> sendRoomMessage(String roomID, String message) async {
-    if (message.isEmpty) return;
-
-    // IMPORTANT: Ensure we are in the ZIM room before sending
-    // Sometimes joinRoom might lag or fail silently.
-    // We can try to enter again just in case (ZIM handles duplicate entry gracefully usually)
+    if (currentUserId == null) return;
 
     ZIMTextMessage textMessage = ZIMTextMessage(message: message);
-    ZIMMessageSendConfig config = ZIMMessageSendConfig();
-    config.priority = ZIMMessagePriority.low;
+    ZIMMessageSendConfig sendConfig = ZIMMessageSendConfig();
+    // Set priority to Low for chat messages
+    sendConfig.priority = ZIMMessagePriority.low;
 
-    try {
-      await ZIM.getInstance()!.sendMessage(
-        textMessage,
-        roomID,
-        ZIMConversationType.room,
-        config,
-        ZIMMessageSendNotification(
-          onMessageAttached: (message) {
-            debugPrint("Message attached");
-          },
-        ),
-      );
-      debugPrint("Sent ZIM message to room $roomID: $message");
-    } catch (e) {
-      debugPrint("Failed to send ZIM message: $e");
-      // If error is related to "not in room" (Error 6000001 or similar), try joining again?
-    }
+    await ZIM.getInstance()!.sendMessage(
+      textMessage,
+      roomID,
+      ZIMConversationType.room,
+      sendConfig,
+    );
+  }
+
+  Future<void> sendRoomCommand(String roomID, String command) async {
+    if (currentUserId == null) return;
+
+    // Convert string to Uint8List for Command Message
+    List<int> cmdBytes = command.codeUnits;
+    ZIMCommandMessage cmdMessage = ZIMCommandMessage(
+      message: Uint8List.fromList(cmdBytes),
+    );
+
+    ZIMMessageSendConfig sendConfig = ZIMMessageSendConfig();
+    // Set priority to High for signaling (gifts, actions)
+    sendConfig.priority = ZIMMessagePriority.high;
+
+    await ZIM.getInstance()!.sendMessage(
+      cmdMessage,
+      roomID,
+      ZIMConversationType.room,
+      sendConfig,
+    );
   }
 
   // Stream Management

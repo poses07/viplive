@@ -36,32 +36,77 @@ $title = $conn->real_escape_string($data['title']);
 $tags = isset($data['tags']) ? $conn->real_escape_string($data['tags']) : '';
 $image_url = isset($data['image_url']) ? $conn->real_escape_string($data['image_url']) : '';
 
-// Insert Room
-$sql = "INSERT INTO rooms (host_id, title, tags, image_url, viewer_count, is_live, created_at) 
-        VALUES ($host_id, '$title', '$tags', '$image_url', 0, 1, NOW())";
+// Check if user already has a room
+$check_sql = "SELECT id FROM rooms WHERE host_id = $host_id LIMIT 1";
+$check_result = $conn->query($check_sql);
 
-if ($conn->query($sql) === TRUE) {
-    $room_id = $conn->insert_id;
+if ($check_result && $check_result->num_rows > 0) {
+    // Update existing room
+    $row = $check_result->fetch_assoc();
+    $room_id = $row['id'];
     
-    // Initialize 10 seats (0-9)
-    $seat_values = [];
-    for ($i = 0; $i < 10; $i++) {
-        // Auto-assign Host to Seat 0
-        $uid = ($i == 0) ? $host_id : "NULL";
-        $seat_values[] = "($room_id, $i, $uid, 0)";
-    }
+    $update_sql = "UPDATE rooms SET title='$title', tags='$tags', image_url='$image_url', is_live=1 WHERE id=$room_id";
     
-    // Batch insert seats
-    $seat_sql = "INSERT INTO room_seats (room_id, seat_index, user_id, is_locked) VALUES " . implode(", ", $seat_values);
-    
-    if ($conn->query($seat_sql) === TRUE) {
+    if ($conn->query($update_sql) === TRUE) {
+        // Ensure host is in seat 0 using JSON
+        // First fetch current seats
+        $get_seats_sql = "SELECT seats FROM rooms WHERE id = $room_id";
+        $result = $conn->query($get_seats_sql);
+        if ($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $seats = json_decode($row['seats'], true);
+            
+            // If seats column is null (migration case), initialize it
+            if ($seats === null) {
+                $seats = [];
+                for ($i = 0; $i < 10; $i++) {
+                    $seats[] = ["index" => $i, "user_id" => null, "is_locked" => false];
+                }
+            }
+            
+            // Force host to seat 0
+            $seats[0]['user_id'] = $host_id;
+            
+            $new_seats_json = json_encode($seats);
+            $update_seats_sql = "UPDATE rooms SET seats = '$new_seats_json' WHERE id = $room_id";
+            $conn->query($update_seats_sql);
+        }
+        
         echo json_encode(["success" => true, "room_id" => $room_id]);
     } else {
-        // If seat creation fails, we should ideally rollback/delete the room, but for now just report error
-        echo json_encode(["error" => "Room created but failed to create seats: " . $conn->error]);
+        echo json_encode(["error" => "Failed to update existing room: " . $conn->error]);
     }
 } else {
-    echo json_encode(["error" => "SQL Error: " . $conn->error, "sql" => $sql]);
+    // Insert New Room
+    $sql = "INSERT INTO rooms (host_id, title, tags, image_url, viewer_count, is_live, created_at) 
+            VALUES ($host_id, '$title', '$tags', '$image_url', 0, 1, NOW())";
+
+    if ($conn->query($sql) === TRUE) {
+        $room_id = $conn->insert_id;
+        
+        // Initialize 10 seats as JSON
+    $seats = [];
+    for ($i = 0; $i < 10; $i++) {
+        // Auto-assign Host to Seat 0
+        $uid = ($i == 0) ? $host_id : null;
+        $seats[] = [
+            "index" => $i,
+            "user_id" => $uid,
+            "is_locked" => false
+        ];
+    }
+    
+    $seats_json = json_encode($seats);
+    $update_json_sql = "UPDATE rooms SET seats = '$seats_json' WHERE id = $room_id";
+    
+    if ($conn->query($update_json_sql) === TRUE) {
+        echo json_encode(["success" => true, "room_id" => $room_id]);
+    } else {
+        echo json_encode(["error" => "Room created but failed to save seats JSON: " . $conn->error]);
+    }
+    } else {
+        echo json_encode(["error" => "SQL Error: " . $conn->error, "sql" => $sql]);
+    }
 }
 
 $conn->close();

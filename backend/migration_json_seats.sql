@@ -1,0 +1,2 @@
+ALTER TABLE rooms ADD COLUMN seats JSON DEFAULT NULL;
+DROP TABLE room_seats;

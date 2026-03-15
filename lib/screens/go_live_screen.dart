@@ -14,6 +14,8 @@ class GoLiveScreen extends StatefulWidget {
 
 class _GoLiveScreenState extends State<GoLiveScreen> {
   bool _isCreatingRoom = false;
+  bool _isLoadingRoom = true;
+  Map<String, dynamic>? _existingRoom;
 
   final ApiService _apiService = ApiService();
 
@@ -25,6 +27,30 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
   @override
   void initState() {
     super.initState();
+    _checkExistingRoom();
+  }
+
+  Future<void> _checkExistingRoom() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUser = userProvider.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final result = await _apiService.getMyRoom(currentUser.id);
+      if (mounted) {
+        setState(() {
+          if (result['success'] == true && result['room'] != null) {
+            _existingRoom = result['room'];
+            _titleController.text = _existingRoom!['title'];
+            // _selectedTag = _existingRoom!['tags']; // Optional: restore tag
+          }
+          _isLoadingRoom = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking room: $e');
+      if (mounted) setState(() => _isLoadingRoom = false);
+    }
   }
 
   @override
@@ -37,6 +63,33 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
 
   // Create Room and Navigate
   Future<void> _createRoomAndGoLive() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.currentUser == null) {
+      await userProvider.loginMock();
+      if (!mounted) return;
+    }
+    final currentUser = userProvider.currentUser;
+    final int hostId = currentUser?.id ?? 1;
+
+    // If existing room found, just navigate to it
+    if (_existingRoom != null) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => ChatPartyScreen(
+                roomTitle: _existingRoom!['title'],
+                roomId: int.parse(_existingRoom!['id'].toString()),
+                isHost: true,
+                userId: hostId.toString(),
+                userName: currentUser?.username ?? 'User',
+              ),
+        ),
+      );
+      return;
+    }
+
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a room title')),
@@ -49,14 +102,6 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
     });
 
     try {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      if (userProvider.currentUser == null) {
-        await userProvider.loginMock();
-      }
-
-      final currentUser = userProvider.currentUser;
-      final int hostId = currentUser?.id ?? 1;
-
       // Always create 'party' type since live is removed
       final result = await _apiService.createRoom(
         hostId: hostId,
@@ -220,92 +265,141 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
 
                 const Spacer(),
 
-                // Room Title Input
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: w(20)),
-                  padding: EdgeInsets.all(w(20)),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Column(
+                if (_isLoadingRoom)
+                  const CircularProgressIndicator(color: Color(0xFFE65E8B))
+                else if (_existingRoom != null)
+                  // Existing Room UI
+                  Column(
                     children: [
-                      TextField(
-                        controller: _titleController,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: EdgeInsets.all(w(20)),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(
+                              0xFFE65E8B,
+                            ).withValues(alpha: 0.5),
+                            width: 2,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                        decoration: const InputDecoration(
-                          hintText: 'Add a title to chat...',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                      SizedBox(height: h(20)),
-                      // Tags
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children:
-                              ['Chat', 'Music', 'Game', 'Party'].map((tag) {
-                                final isSelected = _selectedTag == tag;
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedTag = tag;
-                                    });
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(right: w(10)),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: w(16),
-                                      vertical: h(8),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isSelected
-                                              ? const Color(0xFFE65E8B)
-                                              : Colors.white.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight:
-                                            isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.meeting_room,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                            SizedBox(height: h(10)),
+                            const Text(
+                              "Zaten aktif bir odanız var!",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: h(5)),
+                            Text(
+                              _existingRoom!['title'],
+                              style: const TextStyle(
+                                color: Color(0xFFE65E8B),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
+                  )
+                else
+                  // Create Room UI
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: w(20)),
+                    padding: EdgeInsets.all(w(20)),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _titleController,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          decoration: const InputDecoration(
+                            hintText: 'Add a title to chat...',
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                        SizedBox(height: h(20)),
+                        // Tags
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children:
+                                ['Chat', 'Music', 'Game', 'Party'].map((tag) {
+                                  final isSelected = _selectedTag == tag;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedTag = tag;
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: w(10)),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: w(16),
+                                        vertical: h(8),
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            isSelected
+                                                ? const Color(0xFFE65E8B)
+                                                : Colors.white.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        tag,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight:
+                                              isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
                 SizedBox(height: h(30)),
 
                 // Only Chat Party Mode is available now
-                Text(
-                  "Starting Audio Room",
-                  style: TextStyle(color: Colors.white54, fontSize: w(12)),
-                ),
+                if (_existingRoom == null)
+                  Text(
+                    "Starting Audio Room",
+                    style: TextStyle(color: Colors.white54, fontSize: w(12)),
+                  ),
 
                 SizedBox(height: h(30)),
 
-                // Go Live Button
+                // Go Live / Go to Room Button
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: w(40),
@@ -327,9 +421,11 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
                               ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
-                              : const Text(
-                                'Start Party',
-                                style: TextStyle(
+                              : Text(
+                                _existingRoom != null
+                                    ? 'Odama Git'
+                                    : 'Start Party',
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -339,100 +435,6 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTag(
-    String text,
-    double Function(double) w,
-    double Function(double) h,
-  ) {
-    bool isSelected = _selectedTag == text;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTag = text;
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.only(right: w(12)),
-        padding: EdgeInsets.symmetric(horizontal: w(20), vertical: h(8)),
-        decoration: BoxDecoration(
-          color:
-              isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: w(12),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildControlItem(
-    IconData icon,
-    String label,
-    double Function(double) w, {
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: w(32)),
-          SizedBox(height: 8),
-          Text(label, style: TextStyle(color: Colors.white, fontSize: w(10))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeItem(
-    int index,
-    IconData icon,
-    String label,
-    double Function(double) w,
-  ) {
-    bool isSelected = _selectedMode == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMode = index;
-        });
-      },
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(w(12)),
-            decoration: BoxDecoration(
-              color:
-                  isSelected
-                      ? Colors.yellow
-                      : Colors.black.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.white,
-              size: w(24),
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.yellow : Colors.white70,
-              fontSize: w(12),
-              fontWeight: FontWeight.bold,
             ),
           ),
         ],

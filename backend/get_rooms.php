@@ -21,7 +21,7 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 // Fetch active rooms (is_live = 1) with host details
-$sql = "SELECT r.id, r.title, r.tags, r.image_url, r.viewer_count, r.is_live, 
+$sql = "SELECT r.id, r.title, r.tags, r.image_url, r.viewer_count, r.is_live, r.level, r.points,
                u.username as host_name, u.avatar_url as host_avatar
         FROM rooms r
         JOIN users u ON r.host_id = u.id

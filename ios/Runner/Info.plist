@@ -51,6 +51,11 @@
 	<string>Canlı yayın ve sesli sohbet için mikrofona erişim izni gerekiyor.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafı yüklemek için galeriye erişim izni gerekiyor.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>fetch</string>
+    </array>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>

@@ -60,8 +60,12 @@ class _LoginScreenState extends State<LoginScreen> {
     double w(double width) => width * (screenSize.width / designWidth);
     double h(double height) => height * (screenSize.height / designHeight);
 
+    // Get keyboard height
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false, // Prevent resizing
       body: Stack(
         children: [
           // Background Image (A Cinderella Story...)
@@ -129,13 +133,16 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           // Login Buttons Area
-          Positioned(
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
             left: w(51),
             right: w(51),
-            bottom: h(150), // Adjust bottom spacing
-            child: Column(
-              children: [
-                Form(
+            // Move up when keyboard is open
+            bottom: h(150) + (keyboardHeight > 0 ? keyboardHeight - h(100) : 0),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Form(
                   key: _formKey,
                   child: Column(
                     children: [
@@ -273,6 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+          ),
           ),
 
           // Terms & Privacy Policy
