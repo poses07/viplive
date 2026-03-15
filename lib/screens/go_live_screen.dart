@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'live_room_screen.dart';
 import 'chat_party_screen.dart';
 import '../services/api_service.dart';
 
@@ -16,10 +13,6 @@ class GoLiveScreen extends StatefulWidget {
 }
 
 class _GoLiveScreenState extends State<GoLiveScreen> {
-  CameraController? _controller;
-  List<CameraDescription>? _cameras;
-  bool _isCameraInitialized = false;
-  int _selectedCameraIndex = 0;
   bool _isCreatingRoom = false;
 
   final ApiService _apiService = ApiService();
@@ -27,12 +20,11 @@ class _GoLiveScreenState extends State<GoLiveScreen> {
   // Form State
   final TextEditingController _titleController = TextEditingController();
   String _selectedTag = 'Chat';
-  int _selectedMode = 1; // 0: Live, 1: Chat Party (Default to Chat Party)
+  // int _selectedMode = 1; // Always Party now
 
   @override
   void initState() {
     super.initState();
-    // No camera initialization needed for Chat Party
   }
 
   @override
